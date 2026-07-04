@@ -36,34 +36,55 @@ Di seguito l'architettura logica e fisica dei componenti deployati in cloud.
 
 ```mermaid
 graph TB
-    Internet((Internet))
+    Client((Client/Browser))
+    GoogleAPI[("Google Maps API (External)")]
+    
+    subgraph GitHub["GitHub Platform"]
+        GHRepo["Source Code (Spring Boot)"]
+        GHActions["GitHub Actions (CI/CD)"]
+    end
     
     subgraph AWS["AWS Cloud"]
+        ECR[("Amazon ECR (Docker Registry)")]
         ALB["Application Load Balancer"]
+        SSM[("AWS SSM Parameter Store")]
         
         subgraph VPC["VPC Custom"]
             subgraph Public["Public Subnets"]
-                EC2Master["EC2 Master Node (K3s)"]
-                EC2Worker["EC2 Worker Node (K3s)"]
+                subgraph MasterNode["EC2 Master Node (K3s)"]
+                    AppMaster["Spring Boot App Pod"]
+                end
+                subgraph WorkerNode["EC2 Worker Node (K3s)"]
+                    AppWorker["Spring Boot App Pod"]
+                end
             end
             
             subgraph Private["Private Subnets"]
                 RDS[("Amazon RDS (MySQL)")]
             end
         end
-        
-        SSM[("AWS SSM Parameter Store")]
     end
     
-    Internet -->|HTTP/HTTPS| ALB
-    ALB -->|NodePort 30080| EC2Master
-    ALB -->|NodePort 30080| EC2Worker
+    GHRepo -->|Push| GHActions
+    GHActions -->|Build & Push Image| ECR
     
-    EC2Master -->|JDBC 3306| RDS
-    EC2Worker -->|JDBC 3306| RDS
+    MasterNode -.->|Pull Image| ECR
+    WorkerNode -.->|Pull Image| ECR
     
-    EC2Master -.->|Fetch Secrets| SSM
+    Client -->|HTTP/HTTPS| ALB
+    ALB -->|NodePort 30080| AppMaster
+    ALB -->|NodePort 30080| AppWorker
+    
+    AppMaster -->|JDBC 3306| RDS
+    AppWorker -->|JDBC 3306| RDS
+    
+    AppMaster -.->|Fetch Secrets| SSM
+    
+    AppMaster <-->|REST API via Resilience4j| GoogleAPI
+    AppWorker <-->|REST API via Resilience4j| GoogleAPI
 ```
+
+
 *Note architetturali:* 
 - L'Application Load Balancer (ALB) intercetta il traffico da internet e lo distribuisce sui nodi EC2 (Worker/Master) in Round-Robin sulla `NodePort` (30080). 
 - I nodi EC2 ospitano **K3s**, una versione leggera e certificata di Kubernetes.
