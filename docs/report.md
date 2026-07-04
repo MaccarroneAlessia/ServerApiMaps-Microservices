@@ -33,28 +33,36 @@ Il processo è avviato tramite un utente non-root (`springuser`).
 ## 3. Schema dell'Architettura Cloud (AWS)
 Di seguito l'architettura logica e fisica dei componenti deployati in cloud.
 
+
 ```mermaid
-architecture-beta
-    group aws(cloud)[AWS Cloud]
-
-    service internet(internet)[Internet]
-    service alb(server)[Application Load Balancer] in aws
+graph TB
+    Internet((Internet))
     
-    group vpc(cloud)[VPC Custom] in aws
-    group public_subnet(cloud)[Public Subnets] in vpc
-    group private_subnet(cloud)[Private Subnets] in vpc
-
-    service ec2_master(server)[EC2 Master Node - K3s] in public_subnet
-    service ec2_worker(server)[EC2 Worker Node - K3s] in public_subnet
-    service rds(database)[Amazon RDS MySQL] in private_subnet
-    service ssm(disk)[AWS SSM Parameter Store] in aws
-
-    internet:R --> L:alb
-    alb:B --> T:ec2_master
-    alb:B --> T:ec2_worker
-    ec2_master:R --> L:rds
-    ec2_worker:R --> L:rds
-    ec2_master:T --> B:ssm
+    subgraph AWS["AWS Cloud"]
+        ALB["Application Load Balancer"]
+        
+        subgraph VPC["VPC Custom"]
+            subgraph Public["Public Subnets"]
+                EC2Master["EC2 Master Node (K3s)"]
+                EC2Worker["EC2 Worker Node (K3s)"]
+            end
+            
+            subgraph Private["Private Subnets"]
+                RDS[("Amazon RDS (MySQL)")]
+            end
+        end
+        
+        SSM[("AWS SSM Parameter Store")]
+    end
+    
+    Internet -->|HTTP/HTTPS| ALB
+    ALB -->|NodePort 30080| EC2Master
+    ALB -->|NodePort 30080| EC2Worker
+    
+    EC2Master -->|JDBC 3306| RDS
+    EC2Worker -->|JDBC 3306| RDS
+    
+    EC2Master -.->|Fetch Secrets| SSM
 ```
 *Note architetturali:* 
 - L'Application Load Balancer (ALB) intercetta il traffico da internet e lo distribuisce sui nodi EC2 (Worker/Master) in Round-Robin sulla `NodePort` (30080). 
