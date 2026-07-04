@@ -1,0 +1,47 @@
+{"properties": [
+  {
+    "name": "google.maps.api.key",
+    "type": "java.lang.String",
+    "description": "A description for 'google.maps.api.key'"
+  },
+  {
+    "name": "app.traffic.route.origin",
+    "type": "java.lang.String",
+    "description": "A description for 'app.traffic.route.origin'"
+  },
+  {
+    "name": "app.traffic.route.destination",
+    "type": "java.lang.String",
+    "description": "A description for 'app.traffic.route.destination'"
+  },
+  {
+    "name": "app.google.directions.api.url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.google.directions.api.url'"
+  },
+  {
+    "name": "app.api.timeout.seconds",
+    "type": "java.lang.String",
+    "description": "A description for 'app.api.timeout.seconds'"
+  },
+  {
+    "name": "traffic.collection.fixedDelayMs",
+    "type": "java.lang.String",
+    "description": "A description for 'traffic.collection.fixedDelayMs'"
+  },
+  {
+    "name": "traffic.collection.fixedDelayMs",
+    "type": "java.lang.String",
+    "description": "A description for 'traffic.collection.fixedDelayMs'"
+  },
+  {
+    "name": "traffic.collection.fixedDelayMs",
+    "type": "java.lang.String",
+    "description": "A description for 'traffic.collection.fixedDelayMs'"
+  },
+  {
+    "name": "traffic.collection.fixedDelayMs",
+    "type": "java.lang.String",
+    "description": "A description for 'traffic.collection.fixedDelayMs'"
+  }
+]}

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maps-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maps-app
+  template:
+    metadata:
+      labels:
+        app: maps-app
+    spec:
+      containers:
+      - name: maps-app
+        # Nome dell'immagine che dovremo buildare e importare in k3s locale
+        image: maps-app:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: maps-app-config
+              key: SPRING_DATASOURCE_URL
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: GOOGLE_MAPS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: GOOGLE_MAPS_API_KEY
+        - name: SPRING_CLOUD_AWS_SQS_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_RABBIT_ENABLED
+          value: "false"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maps-app-service
+spec:
+  # Espone l'app all'esterno del cluster usando una NodePort statica sulla porta 30080
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080
+  selector:
+    app: maps-app

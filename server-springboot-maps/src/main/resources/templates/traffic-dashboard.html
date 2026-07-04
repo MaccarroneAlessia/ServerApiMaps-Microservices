@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Traffico</title>
+    <!--includiamo Bootstrap-->
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+
+        /* Variabili CSS per il tema verde */
+        :root {
+            --green-dark: #004d40; /* Verde scuro molto profondo */
+            --green-medium: #00796b; /* Verde teale medio */
+            --green-light: #4db6ac; /* Verde teale chiaro */
+
+            --red-dark: #5f161d;
+            --red-medium: #7d030f;
+            --red-light: #b90719;
+
+            --text-color-dark: #333;
+            --text-color-light: #f8f9fa; /* Colore testo chiaro per sfondi scuri */
+            --highlight-blue: #007bff; /* un blu */
+
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+
+            font-family: Arial, sans-serif;
+            margin: 0; /* Rimuovi il margin di 20px per un layout a larghezza completa con la navbar */
+            background-color: #f4f4f4;
+            color: var(--text-color-dark);
+        }
+        .container-fluid {
+            padding: 30px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2 { 
+            color: var(--green-medium);
+        }
+        .container { 
+            background-color: #fff; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            margin-bottom: 20px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px; 
+        }
+        th, td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: left; 
+        }
+        th {
+            background-color: var(--green-light); /* Intestazione tabella in verde chiaro */
+            color: var(--text-color-dark); /* Testo intestazione scuro */
+        }
+        form { 
+            margin-top: 20px; 
+            padding: 15px; 
+            border: 1px solid #eee; 
+            border-radius: 5px; 
+            background-color: #f9f9f9; }
+        label { 
+            display: block; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+        }
+        input[type="text"], input[type="number"], select { 
+            width: calc(100% - 22px); 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+        }
+        button {
+            background-color: var(--green-medium); /* Pulsanti in verde medio */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: var(--green-dark); /* Hover pulsanti in verde scuro */
+        }
+        .message.success { 
+            background-color: #d4edda; 
+            color: var(--green-medium); 
+            border: 1px solid #c3e6cb; 
+            padding: 10px; margin-bottom: 15px; 
+            border-radius: 5px; 
+        }
+        .message.error { 
+            background-color: #f8d7da; 
+            color: var(--red-dark); 
+            border: 1px solid #f5c6cb; 
+            padding: 10px; margin-bottom: 15px; 
+            border-radius: 5px; 
+        }
+        .delete-button { 
+            background-color: var(--red-medium); 
+        }
+        .delete-button:hover { 
+            background-color: var(--red-light); 
+        }
+
+        .analysis-button:hover {
+            background-color: var(--green-light) 
+        }
+        /* Stili per la navbar a tema verde */
+        .navbar-green {
+            background-color: var(--green-dark) !important; /* Forza il verde scuro per la navbar */
+            height: 55px;
+        }
+        .navbar-green .navbar-brand,
+        .navbar-green .nav-link {
+            color: var(--text-color-light) !important; /* Testo chiaro */
+        }
+        .navbar-green .nav-link:hover,
+        .navbar-green .nav-link.active {
+            color: var(--green-light) !important; /* Colore chiaro per hover/attivo */
+        }
+        .navbar-green .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28248, 249, 250, 0.75%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+        .navbar-green .navbar-toggler {
+            border-color: rgba(248, 249, 250, 0.1);
+        }
+    </style>
+    <!--<script th:src="@{https://maps.googleapis.com/maps/api/js?key=API_KEYYYY&libraries=places}"></script>-->
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-green">
+    <div class="container-fluid">
+        <!--<a class="navbar-brand" href="/">Mappa Traffico</a>-->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${currentUri == '/' ? 'active' : ''}" aria-current="page" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${currentUri == '/traffic-dashboard' ? 'active' : ''}" th:aria-current="${currentUri == '/traffic-dashboard' ? 'page' : 'false'}" href="/traffic-dashboard">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${currentUri == '/analysis' ? 'active' : ''}" th:aria-current="${currentUri == '/analysis' ? 'page' : 'false'}" href="/analysis">Analisi</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+        <br>
+        <h1>Dashboard del Traffico</h1>
+        <br>
+        <div th:if="${successMessage}" class="message success">
+            <p th:text="${successMessage}"></p>
+        </div>
+        <div th:if="${errorMessage}" class="message error">
+            <p th:text="${errorMessage}"></p>
+        </div>
+
+        <h2>Aggiungi Nuova Località</h2>
+
+        <!--@{/add-location-by-adress}-->
+        <form th:action="@{/add-location-by-address}" method="post" th:object="${newLocation}">
+            <label for="addressInput">Indirizzo o Luogo:</label>
+            <input type="text" id="addressInput" name="addressInput" placeholder="Es: Via Etnea 10, Catania" required>
+            <button type="submit">Aggiungi per Indirizzo</button>
+        </form>
+        <br><br>
+        <small>oppure inserisci le coordinate manualmente</small>
+        <br>
+        <!--@{/add-location}-->
+        <form th:action="@{/add-location}" method="post" th:object="${newLocation}">
+            <label for="name">Nome:</label>
+            <input type="text" id="name" th:field="*{name}">
+
+            <label for="latitude">Latitudine:</label>
+            <input type="number" id="latitude" step="any" th:field="*{latitude}" required>
+
+            <label for="longitude">Longitudine:</label>
+            <input type="number" id="longitude" step="any" th:field="*{longitude}" required>
+
+            <button type="submit">Aggiungi Località</button>
+        </form>
+
+        <br>
+        <h2>Controlla Traffico Manualmente</h2>
+        <form th:action="@{/check-traffic}" method="post">
+            <label for="originId">Origine:</label>
+            <select id="originId" name="originId" required>
+                <option value="">Seleziona origine</option>
+                <option th:each="loc : ${locations}" th:value="${loc.id}" th:text="${loc.name} + ' (' + ${loc.latitude} + ',' + ${loc.longitude} + ')'"></option>
+            </select>
+
+            <label for="destinationId">Destinazione:</label>
+            <select id="destinationId" name="destinationId" required>
+                <option value="">Seleziona destinazione</option>
+                <option th:each="loc : ${locations}" th:value="${loc.id}" th:text="${loc.name} + ' (' + ${loc.latitude} + ',' + ${loc.longitude} + ')'"></option>
+            </select>
+
+            <button type="submit">Controlla Traffico</button>
+        </form>
+    </div>
+
+    <div class="container-fluid">
+        <h2>Località Salvate</h2>
+        <p th:if="${locations.isEmpty()}">Nessuna località salvata.</p>
+        <table th:unless="${locations.isEmpty()}">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <!--th>Indirizzo/Luogo</th-->
+                    <th>Latitudine</th>
+                    <th>Longitudine</th>
+                    <th>Azioni</th>
+                    <!--<td></td>-->
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="loc : ${locations}">
+                    <td th:text="${loc.id}"></td>
+                    <td th:text="${loc.name}"></td>
+                    <!--td th:text="${loc.adress} != null ? ${loc.adress} : 'N/A'"></td-->
+                    <td th:text="${loc.latitude}"></td>
+                    <td th:text="${loc.longitude}"></td>
+                    <!--<td>
+                        
+                        <button type="button" class="btn btn-sm rename-button"
+                                    th:onclick="'openRenameModal(\'' + ${loc.id} + '\', \'' + ${loc.name} + '\')'">Rinomina</button>
+                    </td>-->
+                    <td>
+                        <form th:action="@{/delete-location}" method="post" style="display:inline;">
+                            <input type="hidden" name="id" th:value="${loc.id}">
+                            <button type="submit" class="delete-button">Elimina</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container-fluid">
+        <h2>Dati Traffico Raccolti</h2>
+        <!--  per mostrare un messaggio se la lista è vuota. -->
+        <p th:if="${trafficDataList.isEmpty()}">Nessun dato traffico raccolto.</p>
+        <!-- mostra la tabella altrimenti i-->
+        <table th:unless="${trafficDataList.isEmpty()}">
+            <thead>
+                <tr>
+                    <!-- id timestamp originLatLng destinationLatLng mode routeDetails (summary duration durationInTraffic)--> 
+                    <th>ID</th>
+                    <th>Data/Ora</th>
+                    <th>Origine</th>
+                    <th>Destinazione</th>
+                    <th>Modo</th>
+                    <th>Riepilogo</th>
+                    <th>Durata (min)</th>
+                    <th>Durata Traffico (min)</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- th:each="td : ${trafficDataList}" è corretto per iterare sulla lista di TrafficData -->
+                <tr th:each="td : ${trafficDataList}">
+                    <!-- ID -->
+                    <td th:text="${td.id}"></td>
+                    <!-- data/ora -- > 'dateTimeFormatter'  disponibile nel modello del controller -->
+                    <td th:text="${td.timestamp.format(dateTimeFormatter)}"></td>
+                    <!--  nome, latitudine e longitudine dell'origine LatLng -->
+                    <td th:text="${td.origin.name} + ' (' + ${td.origin.latitude} + ',' + ${td.origin.longitude} + ')'"></td>
+                    <!--  della destinazione LatLng -->
+                    <td th:text="${td.destination.name} + ' (' + ${td.destination.latitude} + ',' + ${td.destination.longitude} + ')'"></td>
+                    <!-- modo di trasporto -->
+                    <td th:text="${td.mode}"></td>
+                    
+            <!-- summary -->
+            <td th:text="${td.routeDetails != null ? td.routeDetails.summary : 'N/A'}"></td>
+            <!--duration-->
+            <td th:text="${td.routeDetails != null && td.routeDetails.duration != null ? (td.routeDetails.duration.value / 60.0) : 'N/A'}"></td>
+            <!--duration in traffic-->
+            <td th:text="${td.routeDetails != null && td.routeDetails.durationInTraffic != null ? (td.routeDetails.durationInTraffic.value / 60.0) : 'N/A'}"></td>
+            <td>
+                        <form th:action="@{/delete-traffic-data}" method="post" style="display:inline;">
+                            <input type="hidden" name="id" th:value="${td.id}">
+                            <button type="submit" class="delete-button">Elimina</button>
+                        </form>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="container text-center mt-4">
+            <a th:href="@{/analysis}" class="btn analysis-button">Vai alla Pagina delle Analisi</a>
+        </div>
+    </div>
+
+    <div class="modal fade" id="renameLocationModal" tabindex="-1" aria-labelledby="renameLocationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="renameLocationModalLabel">Rinomina Località</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form th:action="@{/rename-location}" method="post">
+                    <div class="modal-body">
+                        <input type="hidden" id="renameLocationId" name="id">
+                        <div class="mb-3">
+                            <label for="newLocationName" class="form-label">Nuovo Nome:</label>
+                            <input type="text" class="form-control" id="newLocationName" name="newName" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                        <button type="submit" class="btn btn-primary">Salva Modifiche</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eBQIuYxa7X"
+            crossorigin="anonymous"></script>
+</body>
+</html>

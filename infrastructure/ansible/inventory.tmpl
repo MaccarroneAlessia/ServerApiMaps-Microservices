@@ -1,0 +1,5 @@
+[master]
+${master_ip} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[worker]
+${worker_ip} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no'

@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maps-app
+spec:
+  replicas: 2 # 2 repliche per High Availability nel cloud
+  selector:
+    matchLabels:
+      app: maps-app
+  template:
+    metadata:
+      labels:
+        app: maps-app
+    spec:
+      containers:
+      - name: maps-app
+        image: IMAGE_PLACEHOLDER # Sarà rimpiazzato dalla pipeline Kustomize / sed
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "cloud" # Per attivare il profilo cloud (es. SQS)
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: maps-app-cloud-config
+              key: SPRING_DATASOURCE_URL
+        - name: SPRING_DATASOURCE_USERNAME
+          value: "ale" # L'utente RDS definito
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: maps-app-cloud-secrets
+              key: DB_PASSWORD
+        - name: GOOGLE_MAPS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: maps-app-cloud-secrets
+              key: GOOGLE_API_KEY
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maps-app-service
+spec:
+  type: NodePort # L'ALB fa proxy verso le istanze EC2 su questa porta
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 30080
+    protocol: TCP
+  selector:
+    app: maps-app

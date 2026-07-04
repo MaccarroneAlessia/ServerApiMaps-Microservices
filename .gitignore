@@ -1,0 +1,47 @@
+# =========================
+# BUILD & JAVA
+# =========================
+target/
+*.jar
+*.war
+*.class
+
+# =========================
+# LOGS
+# =========================
+*.log
+logs/
+
+# =========================
+# IDE & OS
+# =========================
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.DS_Store
+Thumbs.db
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/.terraform.tfstate.lock.info
+*.tfvars
+
+# Ansible
+infrastructure/ansible/inventory.ini
+*.pem
+*.ppk
+*.key
+id_rsa
+
+# Kubernetes Secrets (committare secret in formato testo)
+infrastructure/k8s/*-secret.yaml
+kubeconfig*
+config-aws
+
+# Variabili d'ambiente locali
+.env
+*.env

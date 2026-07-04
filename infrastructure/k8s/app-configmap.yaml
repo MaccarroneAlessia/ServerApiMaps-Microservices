@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maps-app-config
+data:
+  # L'URL usa "mysql" come hostname, che è il nome del K8s Service di MySQL.
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/maps_project_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"

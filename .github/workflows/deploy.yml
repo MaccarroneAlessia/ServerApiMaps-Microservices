@@ -1,0 +1,85 @@
+name: Deploy to K3s on EC2
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: maps-app-repo
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout del codice
+      uses: actions/checkout@v4
+
+    - name: Configura Credenziali AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login ad Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build, tag, and push dell'immagine Docker su Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        cd server-springboot-maps
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+    - name: Configura l'accesso SSH al Master K3s
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.K3S_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.K3S_MASTER_IP }} >> ~/.ssh/known_hosts
+
+    - name: Prepara i manifesti e i segreti sul Master K3s
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        # Sostituisci il placeholder con l'immagine buildata
+        sed -i "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" infrastructure/k8s/cloud/app-deployment.yaml
+        
+        # Copia i manifesti sul server master
+        scp -r infrastructure/k8s/cloud/ ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
+
+    - name: Esegui il deploy tramite kubectl via SSH
+      run: |
+        ssh ubuntu@${{ secrets.K3S_MASTER_IP }} << 'EOF'
+          # Recupera i segreti da AWS SSM (oppure possono essere settati manualmente via env)
+          DB_PASS=$(aws ssm get-parameter --name "/maps/db_password" --with-decryption --query "Parameter.Value" --output text || echo "default_pass")
+          API_KEY=$(aws ssm get-parameter --name "/maps/google_api_key" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
+          
+          # La URL del DB deve essere inserita in un secret/configmap
+          DB_URL="${{ secrets.SPRING_DATASOURCE_URL }}"
+          
+          # Crea i segreti in K3s
+          sudo k3s kubectl create configmap maps-app-cloud-config \
+            --from-literal=SPRING_DATASOURCE_URL="$DB_URL" \
+            --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+            
+          sudo k3s kubectl create secret generic maps-app-cloud-secrets \
+            --from-literal=DB_PASSWORD="$DB_PASS" \
+            --from-literal=GOOGLE_API_KEY="$API_KEY" \
+            --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+
+          # Applica i manifesti del Deployment e del Service
+          sudo k3s kubectl apply -f ~/k8s-manifests/
+        EOF
