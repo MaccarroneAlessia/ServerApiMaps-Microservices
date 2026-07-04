@@ -51,11 +51,13 @@ graph TB
         
         subgraph VPC["VPC Custom"]
             subgraph Public["Public Subnets"]
-                subgraph MasterNode["EC2 Master Node (K3s)"]
-                    AppMaster["Spring Boot App Pod"]
-                end
-                subgraph WorkerNode["EC2 Worker Node (K3s)"]
-                    AppWorker["Spring Boot App Pod"]
+                subgraph K8S["Kubernetes Cluster (K3s)"]
+                    subgraph MasterNode["EC2 Master Node"]
+                        AppMaster["Docker Container (Spring Boot Pod)"]
+                    end
+                    subgraph WorkerNode["EC2 Worker Node"]
+                        AppWorker["Docker Container (Spring Boot Pod)"]
+                    end
                 end
             end
             
