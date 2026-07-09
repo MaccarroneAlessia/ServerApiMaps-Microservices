@@ -1,7 +1,7 @@
 # Relazione: Sistemi Cloud e Sviluppo a Microservizi
 
 ## 1. Introduzione e Obiettivi del Progetto
-Il progetto è stato sviluppato per il corso di **Sistemi Cloud**. L'obiettivo principale è la progettazione, containerizzazione e distribuzione in ambiente Cloud di un'applicazione basata sull'architettura a **Microservizi**.
+Il progetto è stato sviluppato per i corsi di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti** e obiettivo principale la progettazione, containerizzazione e distribuzione in ambiente Cloud di un'applicazione basata sull'architettura a **Microservizi**.
 L'applicazione, sviluppata in **Spring Boot**, ha il compito di raccogliere, analizzare e memorizzare dati sul traffico e geocoding, interfacciandosi con le API esterne di Google Maps.
 
 Il progetto copre l'intero ciclo di vita DevOps (sviluppo, containerizzazione, Continuous Integration e provisioning dell'infrastruttura Cloud) diviso rigorosamente in due fasi:

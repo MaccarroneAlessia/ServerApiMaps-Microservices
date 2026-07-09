@@ -5,7 +5,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@TestPropertySource(properties = {"google.maps.api.key=AIzaSyDmacxI26Ax65Qge3T1x9nmj44cdm_smNs"})
+@TestPropertySource(properties = {"google.maps.api.key=DUMMY_KEY"})
 class TrafficApplicationTests {
 
 	@Test

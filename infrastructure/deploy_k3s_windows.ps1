@@ -1,6 +1,6 @@
 param (
-    [string]$DbPassword = "AjgrVqwjdC_ZbWvO",
-    [string]$GoogleApiKey = "AIzaSyDmacxI26Ax65Qge3T1x9nmj44cdm_smNs"
+    [string]$DbPassword = "PASS",
+    [string]$GoogleApiKey = "API_KEY"
 )
 
 Write-Host "=========================================="

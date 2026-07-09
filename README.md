@@ -1,6 +1,6 @@
 # ☁️🗺️ Progetto Sistemi Cloud: Microservizi, Kubernetes & AWS Infrastructure as Code
 
-Progetto universitario avanzato per l'esame di **Sistemi Cloud**.
+Progetto universitario per l'esame di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti**.
 Questo repository contiene lo sviluppo, la containerizzazione e l'automazione infrastrutturale (IaC) di un'applicazione a microservizi basata su **Spring Boot** (Architettura 3-tier) per la gestione e analisi del traffico, con geocoding integrato tramite le API di Google Maps.
 
 Il focus principale del progetto è sulle metodologie DevOps moderne, l'infrastruttura ibrida e la fault-tolerance.
