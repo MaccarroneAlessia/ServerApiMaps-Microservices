@@ -74,7 +74,7 @@ $Content = $Content -replace 'image: maps-app:latest', "image: 493789587491.dkr.
 Set-Content -Path $DeployPath -Value $Content
 
 Write-Host "Copio i file YAML sul Master..."
-cmd.exe /c "scp -o StrictHostKeyChecking=no -i $SshKey -r temp_k8s ubuntu@$MasterIP:~/"
+cmd.exe /c "scp -o StrictHostKeyChecking=no -i $SshKey -r temp_k8s ubuntu@${MasterIP}:~/"
 
 Write-Host "Applico Kubernetes..."
 cmd.exe /c "ssh -o StrictHostKeyChecking=no -i $SshKey ubuntu@$MasterIP `"sudo k3s kubectl apply -f ~/temp_k8s/`""
