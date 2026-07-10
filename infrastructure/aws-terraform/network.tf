@@ -1,3 +1,11 @@
+# AWS NETWORK INFRASTRUCTURE (VPC)
+
+# definisce l'isolamento di rete (fondamentale per la sicurezza cloud)
+# Crea una Virtual Private Cloud (VPC) con:
+# - Subnet Pubbliche: Per le risorse esposte a internet (es. ALB)
+# - Subnet Private: Per le risorse isolate (es. RDS Database)
+# - Internet Gateway & Route Tables: Per permettere la navigazione in uscita.
+
 # VPC Principale
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"

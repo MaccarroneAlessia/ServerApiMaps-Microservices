@@ -1,3 +1,10 @@
+# KUBERNETES DEPLOYMENT MANIFEST (maps-app)
+
+# definisce come il container Spring Boot deve girare su K3s.
+# Best practices implementate (Production-Ready):
+# - Resource Limits: Blocca RAM a 512Mi per prevenire l'OOMKilled e starvation del nodo.
+# - Liveness Probe: Interroga Spring Actuator per riavviare il pod se va in deadlock.
+# - Readiness Probe: Non ruota il traffico verso il pod finché l'app non è pronta.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,37 +20,56 @@ spec:
         app: maps-app
     spec:
       containers:
-      - name: maps-app
-        # Nome dell'immagine che dovremo buildare e importare in k3s locale
-        image: maps-app:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8080
-        env:
-        - name: SPRING_DATASOURCE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: maps-app-config
-              key: SPRING_DATASOURCE_URL
-        - name: SPRING_DATASOURCE_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_USER
-        - name: SPRING_DATASOURCE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: MYSQL_PASSWORD
-        - name: GOOGLE_MAPS_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: mysql-secret
-              key: GOOGLE_MAPS_API_KEY
-        - name: SPRING_CLOUD_AWS_SQS_ENABLED
-          value: "false"
-        - name: MANAGEMENT_HEALTH_RABBIT_ENABLED
-          value: "false"
+        - name: maps-app
+          # Nome dell'immagine che dovremo buildare e importare in k3s locale
+          image: maps-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: maps-app-config
+                  key: SPRING_DATASOURCE_URL
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_PASSWORD
+            - name: GOOGLE_MAPS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: GOOGLE_MAPS_API_KEY
+            - name: SPRING_CLOUD_AWS_SQS_ENABLED
+              value: "false"
+            - name: MANAGEMENT_HEALTH_RABBIT_ENABLED
+              value: "false"
 ---
 apiVersion: v1
 kind: Service
@@ -53,8 +79,8 @@ spec:
   # Espone l'app all'esterno del cluster usando una NodePort statica sulla porta 30080
   type: NodePort
   ports:
-  - port: 8080
-    targetPort: 8080
-    nodePort: 30080
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
   selector:
     app: maps-app

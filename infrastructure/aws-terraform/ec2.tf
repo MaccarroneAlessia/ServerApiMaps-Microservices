@@ -1,3 +1,11 @@
+# AWS COMPUTE INFRASTRUCTURE (EC2)
+
+# provisiona le macchine virtuali su cui girerà Kubernetes (K3s).
+# Implementa la creazione di chiavi SSH in modo dinamico e definisce i due nodi:
+# - k3s_master (t3.small): Gestisce il control plane del cluster.
+# - k3s_worker (t3.micro): Esegue fisicamente il container Spring Boot.
+# Usa local_file per salvare chiavi e IP in locale per permetterne l'uso ad Ansible.
+
 data "aws_ami" "ubuntu" {
   most_recent = true
   filter {

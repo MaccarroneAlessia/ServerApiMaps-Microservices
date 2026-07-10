@@ -1,20 +1,14 @@
-# =========================
 # BUILD & JAVA
-# =========================
 target/
 *.jar
 *.war
 *.class
 
-# =========================
 # LOGS
-# =========================
 *.log
 logs/
 
-# =========================
 # IDE & OS
-# =========================
 .idea/
 .vscode/
 *.iml
@@ -45,3 +39,6 @@ config-aws
 # Variabili d'ambiente locali
 .env
 *.env
+
+# Materiale
+materiale/

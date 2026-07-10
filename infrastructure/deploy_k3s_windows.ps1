@@ -8,6 +8,8 @@ Write-Host "🚀 INIZIO DEPLOY CLOUD AWS 🚀"
 Write-Host "=========================================="
 
 Write-Host "`n1️⃣ Avvio Terraform (Creazione infrastruttura, RDS, EC2, ALB)..."
+# [1 - TERRAFORM APPLY] Lancia l'infrastruttura as Code. Terraform crea fisicamente l'hardware su AWS.
+# I parametri 'DbPassword' e 'GoogleApiKey' passati in input sono inviati in modo sicuro come variabili.
 cd aws-terraform
 terraform init
 terraform apply -var="db_password=$DbPassword" -var="google_api_key=$GoogleApiKey" -auto-approve
@@ -31,6 +33,8 @@ Write-Host "`n3️⃣ Attendo 30 secondi per assicurarmi che le macchine siano p
 Start-Sleep -Seconds 30
 
 Write-Host "`n4️⃣ Installazione K3s sul MASTER NODE..."
+# [2 - CONFIGURATION MANAGEMENT] Sostituisce Ansible. Esegue il download e l'installazione
+# di K3s (Kubernetes) sul nodo principale, configurando la macchina Ubuntu nuda via SSH.
 $SshKey = "ansible\k3s-key.pem"
 
 # Comando SSH Master
@@ -38,15 +42,20 @@ $InstallMasterCmd = "curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC='--tls-san 
 cmd.exe /c "ssh -o StrictHostKeyChecking=no -i $SshKey ubuntu@$MasterIP `"$InstallMasterCmd`""
 
 Write-Host "`n5️⃣ Recupero il Token dal Master per far unire il Worker..."
+# Estrae il file di token crittografico generato da K3s Master necessario per autorizzare i worker.
 $K3sToken = cmd.exe /c "ssh -o StrictHostKeyChecking=no -i $SshKey ubuntu@$MasterIP `"sudo cat /var/lib/rancher/k3s/server/node-token`""
 
 Write-Host "Token recuperato con successo."
 
 Write-Host "`n6️⃣ Installazione K3s sul WORKER NODE..."
+# Usa il token appena prelevato per dire al Worker di unirsi al cluster K3s principale.
 $InstallWorkerCmd = "curl -sfL https://get.k3s.io | K3S_URL=https://${MasterIP}:6443 K3S_TOKEN=$K3sToken sh -"
 cmd.exe /c "ssh -o StrictHostKeyChecking=no -i $SshKey ubuntu@$WorkerIP `"$InstallWorkerCmd`""
 
 Write-Host "`n7️⃣ Deploy dei Manifest Kubernetes (Database e App)..."
+# [3 - KUBERNETES SECRETS & DEPLOY] Autentica K8s verso il registro Docker privato.
+# Preleva un token ECR temporaneo da AWS e lo inietta in K8s come 'Secret' (ecr-registry-secret).
+# Questo è indispensabile altrimenti K8s non avrà i permessi per scaricare la tua immagine Docker.
 # Genero il token ECR
 Write-Host "Richiedo la password Docker da AWS ECR..."
 $EcrPassword = (aws ecr get-login-password --region eu-west-1)
@@ -75,4 +84,4 @@ Remove-Item "temp_k8s" -Recurse -Force
 Write-Host "`n🎉 DEPLOY CLOUD COMPLETATO! 🎉"
 Write-Host "L'applicazione sarà raggiungibile tra pochi minuti all'indirizzo:"
 Write-Host "👉 http://${AlbDns}/graphql"
-Write-Host "ATTENZIONE: Ricordati di fare `terraform destroy` a fine esame!"
+Write-Host "NOTE: Ricorda di fare `terraform destroy` alla fine!"

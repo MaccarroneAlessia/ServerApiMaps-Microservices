@@ -1,7 +1,6 @@
-# ☁️🗺️ Progetto Sistemi Cloud: Microservizi, Kubernetes & AWS Infrastructure as Code
+# ☁️🗺️ ServerApiMaps-Microservices
 
-Progetto universitario per l'esame di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti**.
-Questo repository contiene lo sviluppo, la containerizzazione e l'automazione infrastrutturale (IaC) di un'applicazione a microservizi basata su **Spring Boot** (Architettura 3-tier) per la gestione e analisi del traffico, con geocoding integrato tramite le API di Google Maps.
+Progetto universitario per l'esame di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti**. Questa repository contiene l'intero sviluppo, la containerizzazione e l'automazione infrastrutturale (Infrastructure as Code) di un'applicazione a microservizi basata su **Spring Boot** per l'analisi del traffico, dotata di geocoding integrato tramite l'interfacciamento con le API di Google Maps.
 
 Il focus principale del progetto è sulle metodologie DevOps moderne, l'infrastruttura ibrida e la fault-tolerance.
 
@@ -28,15 +27,16 @@ Tutti i manifesti necessari si trovano nella cartella `infrastructure/k8s/`.
 **Prerequisiti:** Docker Desktop avviato con Kubernetes abilitato.
 
 1. Costruire l'immagine Docker locale:
-   ```bash
-   cd server-springboot-maps
-   docker build -t maps-app:latest .
+```bash
+# Compila l'immagine del backend
+cd server-springboot-maps
+docker build -t maps-app:latest .
    ```
 2. Effettuare il deploy sul cluster Kubernetes:
    ```bash
    cd ..
-   kubectl apply -f infrastructure/k8s/
-   ```
+kubectl apply -f infrastructure/k8s/
+```
 3. Verificare lo stato dei pod (attendere che siano in `Running`):
    ```bash
    kubectl get pods
@@ -62,6 +62,7 @@ Invece di adottare servizi managed costosi e "Black-Box" come EKS o ECS Fargate,
 Per la fase di rilascio è stato creato un potente script PowerShell che orchestra **Terraform**, attende la creazione delle risorse AWS, esegue il setup di rete, recupera gli IP delle macchine ed esegue il deploy dei manifesti Kubernetes direttamente nel cluster in cloud:
 
 ```powershell
+# Esecuzione script di orchestrazione PowerShell
 cd infrastructure
 .\deploy_k3s_windows.ps1
 ```
