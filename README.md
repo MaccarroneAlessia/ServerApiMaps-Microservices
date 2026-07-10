@@ -1,94 +1,114 @@
-# ☁️🗺️ ServerApiMaps-Microservices
+# 🗺️ ServerApiMaps-Microservices
 
-Progetto universitario per l'esame di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti**. Questa repository contiene l'intero sviluppo, la containerizzazione e l'automazione infrastrutturale (Infrastructure as Code) di un'applicazione a microservizi basata su **Spring Boot** per l'analisi del traffico, dotata di geocoding integrato tramite l'interfacciamento con le API di Google Maps.
+[![Java 17](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.0+-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-K3s-blue.svg)](https://k3s.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-purple.svg)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-Cloud-yellow.svg)](https://aws.amazon.com/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF.svg)](https://github.com/features/actions)
 
-Il focus principale del progetto è sulle metodologie DevOps moderne, l'infrastruttura ibrida e la fault-tolerance.
+Progetto universitario per l'esame di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti**.  
+Questa repository contiene l'intero sviluppo, la containerizzazione e l'automazione infrastrutturale (Infrastructure as Code) di un'applicazione a microservizi basata su **Spring Boot** per l'analisi del traffico, dotata di geocoding integrato tramite le API di Google Maps.
 
-Il progetto è strutturato in due fasi implementative:
-- **Fase 1**: Containerizzazione (Docker) e orchestrazione locale tramite Kubernetes (K3s/Docker Desktop).
-- **Fase 2**: Infrastruttura Cloud Ibrida su **Amazon Web Services (AWS)** completamente automatizzata (Terraform + PowerShell) usando macchine IaaS (EC2) per il cluster Kubernetes.
-
----
-
-## 🏗️ Architettura dell'Applicazione (Spring Boot)
-L'applicazione è sviluppata seguendo pattern avanzati per i sistemi distribuiti:
-1. **Tier 1 (Presentation)**: Controller REST per l'esposizione degli endpoint.
-2. **Tier 2 (Business Logic)**: Servizi core con integrazione API esterne. La comunicazione con Google Maps è protetta tramite **Resilience4j** (implementando il pattern **Circuit Breaker** e Retry) per garantire fault-tolerance e prevenire l'esaurimento dei thread in caso di network failures o rate limiting dell'API.
-3. **Tier 3 (Data Layer)**: Connessione a database relazionale (MySQL 8.0 / Amazon RDS) tramite Spring Data JPA / Hibernate.
-
-Il codice è impacchettato tramite un **Dockerfile Multi-Stage** che ottimizza la build e utilizza una JRE *distroless* per il runtime. L'app gira con un utente di sistema ristretto (`springuser`) per ragioni di sicurezza. I log sono inviati in `STDOUT` rispettando i dogmi delle "12-Factor App".
+Il focus principale del progetto è sulle metodologie **DevOps moderne**, sull'infrastruttura **Cloud Ibrida** e sulla **Fault-Tolerance**.
 
 ---
 
-## 💻 Fase 1: Esecuzione Locale (Kubernetes)
+## 🏗️ Architettura del Progetto
 
-Tutti i manifesti necessari si trovano nella cartella `infrastructure/k8s/`.
+L'applicazione e l'infrastruttura sono strutturate seguendo pattern avanzati per i sistemi distribuiti:
+
+### 1. Livello Applicativo (Backend)
+- **Framework**: Spring Boot 3 con Java 17.
+- **Resilienza**: L'integrazione con Google Maps è protetta tramite **Resilience4j** (implementando `Circuit Breaker`, `Retry` e `TimeLimiter`) per prevenire fault a cascata.
+- **Asincronia**: I processi di raccolta dati usano `CompletableFuture` e Message Brokering (RabbitMQ).
+- **Sicurezza**: L'immagine Docker usa una JRE *distroless* e l'app gira con utente ristretto (`springuser`).
+
+### 2. Livello Infrastruttura Cloud (AWS)
+Invece di adottare servizi managed "black-box" (come EKS), l'infrastruttura Cloud è stata progettata per garantire il massimo controllo sui nodi tramite **Terraform (IaC)**:
+- **VPC Custom**: Rete isolata con subnet pubbliche e private.
+- **Amazon RDS (MySQL)**: Database relazionale isolato e protetto nelle Subnet Private.
+- **Application Load Balancer (ALB)**: Proxy inverso con Health Checks verso i pod.
+- **AWS Parameter Store**: Gestione Zero-Trust dei segreti (API keys, password DB).
+
+### 3. Livello Orchestrazione (Kubernetes)
+Il deploy avviene tramite **K3s** (distribuzione Kubernetes leggera) configurato automaticamente sui nodi EC2.
+Le best-practice K8s implementate includono:
+- **Resource Limits & Requests**: Prevenzione contro Memory Leak ed esaurimento risorse (OOMKilled).
+- **Liveness & Readiness Probes**: Monitoraggio attivo dei container via Actuator.
+- **ImagePullSecrets**: Autenticazione K8s verso AWS ECR (Elastic Container Registry) per le immagini private.
+
+---
+
+## 📂 Struttura della Repository
+
+- `/server-springboot-maps`: Codice sorgente Java dell'applicazione e unit tests.
+- `/infrastructure/aws-terraform`: Codice IaC per la creazione delle risorse fisiche su AWS.
+- `/infrastructure/k8s`: Manifesti Kubernetes (`Deployment`, `Service`, `Secret`).
+- `/infrastructure/ansible`: Playbook Ansible per il configuration management dei nodi K3s.
+- `/.github/workflows`: Pipeline CI/CD automatizzata in GitHub Actions.
+- `/materiale`: Risorse di studio, resoconti di ispezione e Q&A preparatorie all'esame.
+
+---
+
+## 🚀 Getting Started
+
+Il progetto è strutturato in due fasi eseguibili. 
+
+### Fase 1: Esecuzione Locale (Docker & K8s locale)
 
 **Prerequisiti:** Docker Desktop avviato con Kubernetes abilitato.
 
-1. Costruire l'immagine Docker locale:
-```bash
-# Compila l'immagine del backend
-cd server-springboot-maps
-docker build -t maps-app:latest .
+1. **Build dell'immagine locale**:
+   ```bash
+   cd server-springboot-maps
+   docker build -t maps-app:latest .
    ```
-2. Effettuare il deploy sul cluster Kubernetes:
+2. **Deploy sul cluster locale**:
    ```bash
    cd ..
-kubectl apply -f infrastructure/k8s/
-```
-3. Verificare lo stato dei pod (attendere che siano in `Running`):
-   ```bash
-   kubectl get pods
+   kubectl apply -f infrastructure/k8s/
    ```
-4. Accedere all'applicazione su: `http://localhost:30080`
+3. L'applicazione sarà disponibile su: `http://localhost:30080`
 
-> 🛡️ **Nota Sicurezza:** I secret non sono mai pushati su repository. I file come `mysql-secret.yaml` e gli state locali (`.tfstate`) sono rigorosamente ignorati tramite `.gitignore`.
+### Fase 2: Deploy in Cloud (AWS & Terraform)
+
+Il deploy in cloud è **totalmente automatizzato** tramite script multi-piattaforma. Crea da zero la VPC, le macchine EC2, installa Kubernetes, genera i secret e lancia l'applicativo.
+
+**Prerequisiti:** Account AWS configurato (chiavi in `~/.aws/credentials`), Terraform installato.
+
+#### Su macOS / Linux (via Ansible):
+```bash
+cd infrastructure
+chmod +x deploy_k3s_linux.sh
+./deploy_k3s_linux.sh "PasswordDB" "ApiKeyGoogle"
+```
+
+#### Su Windows (via PowerShell):
+```powershell
+cd infrastructure
+.\deploy_k3s_windows.ps1 -DbPassword "PasswordDB" -GoogleApiKey "ApiKeyGoogle"
+```
+
+> **Nota:** Al termine del processo (circa 5-10 minuti), lo script restituirà l'URL dell'Application Load Balancer pubblico su cui testare l'app in produzione.
 
 ---
 
-## ☁️ Fase 2: Deploy in Cloud AWS (Infrastructure as Code)
+## 🔄 CI/CD Pipeline
 
-Invece di adottare servizi managed costosi e "Black-Box" come EKS o ECS Fargate, l'infrastruttura Cloud è stata progettata per garantire il **massimo controllo sui nodi (IaaS)** creando un vero cluster in Cloud.
+Ad ogni commit sul branch `main`, la pipeline di GitHub Actions si occupa di:
+1. Eseguire la suite di test (**Test Gate** con Mockito).
+2. Se i test passano, eseguire la build dell'immagine Docker.
+3. Inviare l'immagine su **AWS ECR** (Elastic Container Registry).
+4. Avviare un **Rolling Update** su Kubernetes (K3s Master Node) senza downtime tramite SSH remoto.
 
-### Architettura AWS (K3s su EC2)
-- **VPC Custom**: Rete isolata con subnet separate (pubbliche e private) per proteggere il database.
-- **Cluster Kubernetes (K3s) su EC2**: Terraform provisiona istanze EC2 (nodi Master e Worker) installando e configurando K3s (una distribuzione Kubernetes leggera) in modo automatizzato via SSH.
-- **Application Load Balancer (ALB)**: Funge da proxy inverso. Instrada il traffico ai nodi EC2 ed effettua continui **Health Checks** per isolare i nodi in caso di fault (ad es. per caduta del nodo master o per pod unhealthy).
-- **Amazon RDS (MySQL)**: Database managed protetto nelle Subnet Private.
-- **AWS SSM Parameter Store**: Gestione enterprise dei segreti. Le password (RDS e API Key) sono archiviate in AWS SSM e lette dinamicamente da Terraform in modo cifrato per generare i secret K8s senza hardcodarle nei manifesti.
+---
 
-### 🚀 Deploy "One-Click" (PowerShell Magic)
-Per la fase di rilascio è stato creato un potente script PowerShell che orchestra **Terraform**, attende la creazione delle risorse AWS, esegue il setup di rete, recupera gli IP delle macchine ed esegue il deploy dei manifesti Kubernetes direttamente nel cluster in cloud:
+## 🧹 Cost Saving (Distruzione Risorse)
 
-```powershell
-# Esecuzione script di orchestrazione PowerShell
-cd infrastructure
-.\deploy_k3s_windows.ps1
-```
-*(Lo script automatizza l'intero processo per 5-10 minuti e restituirà alla fine l'URL del Load Balancer su cui testare l'app in produzione!).*
+Per smantellare l'intera infrastruttura Cloud ed evitare addebiti indesiderati a fine test/esame:
 
-### Pipeline Automatica (CI/CD)
-Il progetto include una pipeline GitHub Actions (`.github/workflows/deploy.yml`). Ad ogni push, la CI compila il codice e spinge la nuova immagine Docker su **Amazon ECR (Elastic Container Registry)** in AWS, pronta per essere scaricata dai nodi worker.
-
-### Esecuzione di Terraform (Manuale)
 ```bash
 cd infrastructure/aws-terraform
-terraform init
-terraform apply -var="db_password=PASSWORD" -var="google_api_key=API_KEY"
-```
-
-### Esecuzione di Terraform (Automattico)
-```bash
-cd infrastructure
-.\deploy_k3s_windows.ps1
-```
-
-Restituirà l'URL del Load Balancer su cui testare l'app.
-
-### Distruzione Risorse (Cost Saving)
-Per smantellare l'intera infrastruttura Cloud e azzerare i costi (spegnendo RDS, ALB, EC2 e VPC):
-```bash
-cd infrastructure/aws-terraform
-terraform destroy -auto-approve -var="db_password=PASSWORD" -var="google_api_key=API_KEY"
+terraform destroy -auto-approve -var="db_password=PASS" -var="google_api_key=API_KEY"
 ```
