@@ -30,7 +30,7 @@ jobs:
       # anche se l'account AWS è scaduto.
       run: |
         cd server-springboot-maps
-        ./mvnw test
+        mvn test
 
     - name: Configura Credenziali AWS
       id: aws-creds
