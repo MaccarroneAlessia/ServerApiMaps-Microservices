@@ -24,30 +24,40 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Run Maven Tests (Test Gate)
+      # [TEST GATE] Esegue i test unitari/integrazione in locale sul runner.
+      # Spostato PRIMA di AWS: in questo modo l'app viene sempre compilata e testata ("il sito parte")
+      # anche se l'account AWS è scaduto.
+      run: |
+        cd server-springboot-maps
+        ./mvnw test
+
     - name: Configura Credenziali AWS
+      id: aws-creds
       uses: aws-actions/configure-aws-credentials@v4
+      continue-on-error: true # Non far fallire l'intera pipeline se le chiavi AWS sono scadute
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+    - name: Verifica validità AWS
+      # Se AWS fallisce, impostiamo una variabile per saltare il deploy senza far diventare rossa la pipeline
+      run: |
+        if [ "${{ steps.aws-creds.outcome }}" == "failure" ]; then
+          echo "⚠️ Credenziali AWS non valide o scadute. Il Deploy su cloud verrà saltato, ma la pipeline resterà VERDE."
+          echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
+        else
+          echo "SKIP_DEPLOY=false" >> $GITHUB_ENV
+        fi
+
     - name: Login ad Amazon ECR
+      if: env.SKIP_DEPLOY != 'true'
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Run Maven Tests (Test Gate)
-      # [TEST GATE] Esegue i test unitari/integrazione in locale sul runner.
-      # Se questo step fallisce (es. un test non passa), la pipeline si blocca qui 
-      # e il codice difettoso non verrà MAI pacchettizzato.  
-      
-      run: |
-        cd server-springboot-maps
-        ./mvnw test
-
     - name: Build, tag, and push dell'immagine Docker su Amazon ECR
-      # [DOCKER BUILD & PUSH] Crea l'immagine del container con il codice nuovo
-      # e la invia (push) al registro privato AWS ECR (Elastic Container Registry).
-      # Usa due tag: 'latest' e l'ID del commit (github.sha) per il versioning esatto.
+      if: env.SKIP_DEPLOY != 'true'
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -61,8 +71,7 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
     - name: Configura l'accesso SSH al Master K3s
-      # [SSH SETUP] Preleva la chiave privata salvata nei Secret di GitHub e la carica
-      # nel runner temporaneo per permettergli di loggarsi sulla macchina EC2 su AWS.
+      if: env.SKIP_DEPLOY != 'true'
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.K3S_SSH_KEY }}" > ~/.ssh/id_rsa
@@ -70,6 +79,7 @@ jobs:
         ssh-keyscan -H ${{ secrets.K3S_MASTER_IP }} >> ~/.ssh/known_hosts
 
     - name: Prepara i manifesti e i segreti sul Master K3s
+      if: env.SKIP_DEPLOY != 'true'
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
@@ -81,9 +91,7 @@ jobs:
         scp -r infrastructure/k8s/cloud/ ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
 
     - name: Esegui il deploy tramite kubectl via SSH
-      # [KUBERNETES DEPLOY] Entra nel server Master. Scarica le password crittografate 
-      # dal servizio AWS Parameter Store (Zero-Trust) e le trasforma in K8s Secrets a runtime.
-      # Infine esegue 'kubectl apply' ricaricando l'app senza downtime (Rolling Update).
+      if: env.SKIP_DEPLOY != 'true'
       run: |
         ssh ubuntu@${{ secrets.K3S_MASTER_IP }} << 'EOF'
           # Recupera i segreti da AWS SSM (oppure possono essere settati manualmente via env)
