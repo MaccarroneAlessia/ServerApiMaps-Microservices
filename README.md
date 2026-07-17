@@ -84,7 +84,7 @@ chmod +x deploy_k3s_linux.sh
 ./deploy_k3s_linux.sh "PasswordDB" "ApiKeyGoogle"
 ```
 
-#### Su Windows (via PowerShell):
+#### Su Windows (via PowerShell e SSH agent-less):
 ```powershell
 cd infrastructure
 .\deploy_k3s_windows.ps1 -DbPassword "PasswordDB" -GoogleApiKey "ApiKeyGoogle"

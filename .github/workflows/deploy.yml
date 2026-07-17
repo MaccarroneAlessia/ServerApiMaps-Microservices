@@ -8,6 +8,7 @@ on:
 env:
   AWS_REGION: eu-west-1
   ECR_REPOSITORY: maps-app-repo
+  SKIP_DEPLOY: 'false'
 
 jobs:
   deploy:
@@ -94,9 +95,9 @@ jobs:
       if: env.SKIP_DEPLOY != 'true'
       run: |
         ssh ubuntu@${{ secrets.K3S_MASTER_IP }} << 'EOF'
-          # Recupera i segreti da AWS SSM (oppure possono essere settati manualmente via env)
-          DB_PASS=$(aws ssm get-parameter --name "/maps/db_password" --with-decryption --query "Parameter.Value" --output text || echo "default_pass")
-          API_KEY=$(aws ssm get-parameter --name "/maps/google_api_key" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
+          # Recupera i segreti da AWS SSM (creati da Terraform)
+          DB_PASS=$(aws ssm get-parameter --name "/maps-app/prod/DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text || echo "default_pass")
+          API_KEY=$(aws ssm get-parameter --name "/maps-app/prod/GOOGLE_MAPS_API_KEY" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
           
           # La URL del DB deve essere inserita in un secret/configmap
           DB_URL="${{ secrets.SPRING_DATASOURCE_URL }}"

@@ -17,3 +17,8 @@ output "k3s_worker_ip" {
   description = "IP Pubblico del nodo Worker K3s"
   value       = aws_instance.k3s_worker.public_ip
 }
+
+output "rds_endpoint" {
+  description = "Endpoint del database AWS RDS"
+  value       = aws_db_instance.mysql.endpoint
+}

@@ -1,0 +1,1 @@
+sudo sed -i "s/'--node-ip 10.0.1.247 --node-external-ip'/'--node-ip'\n\t'10.0.1.247'\n\t'--node-external-ip'/" /etc/systemd/system/k3s.service && sudo systemctl daemon-reload && sudo systemctl restart k3s

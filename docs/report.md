@@ -161,9 +161,10 @@ Il deploy avviene tramite uno **Script PowerShell di Automazione Globale** creat
    .\deploy_k3s_windows.ps1
    ```
    *Lo script (circa 10 minuti di esecuzione) si occupa di creare l'infrastruttura hardware su AWS, installare Kubernetes e fare il deploy del software, restituendo infine l'endpoint web.*
+   *(Nota operativa: per garantire la compatibilità nativa su Windows senza dipendere da WSL, lo script PowerShell adotta un approccio puramente agent-less tramite SSH crudo per configurare i nodi, bypassando Ansible).*
 
    - Terraform: Gestisce l'infrastruttura fisica (VPC, EC2, ALB, RDS)
-   - Ansible: Installa K3s e configura i nodi
+   - SSH (Agent-less): Installa K3s e configura i nodi estraendo dinamicamente i token di join
    - Kubernetes: Orchesta i container (Deployment, Service, Ingress)
    - AWS SSM: Gestisce i secret (API Key, Password)
     
@@ -178,7 +179,7 @@ Il deploy avviene tramite uno **Script PowerShell di Automazione Globale** creat
     # 2. Recupero IP pubblici delle macchine EC2 create
     MASTER_IP=$(terraform output -raw k3s_master_public_ip)
     
-    # 3. Provisioning del Software sui Nodi tramite Ansible
+    # 3. Provisioning del Software sui Nodi tramite Ansible (su Linux/macOS, o via WSL su Windows)
     cd ../ansible
     # Inserimento manuale degli IP nel file hosts (inventory)
     ansible-playbook -i inventory/hosts.ini playbook-k3s.yml --private-key=k3s-key.pem -u ubuntu
