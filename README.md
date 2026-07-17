@@ -134,7 +134,55 @@ Per far funzionare il deploy automatico su cloud a ogni `git push`, devi configu
 
 ---
 
-## 🧹 Cost Saving (Distruzione Risorse)
+## 🩺 Diagnostica e Log
+
+Se qualcosa va storto durante l'esecuzione in cloud (es. errore `502` o `504` dal browser), tramite il terminale locale si possono visualizzare i log dei container e risalire al problema.
+
+**1. Controllare lo stato dei container (Pod):**
+Dalla root del progetto, esegui:
+```bash
+ssh -o StrictHostKeyChecking=no -i infrastructure/ansible/k3s-key.pem ubuntu@<K3S_MASTER_IP> "sudo k3s kubectl get pods -A"
+```
+*(Sostituisci `<K3S_MASTER_IP>` con l'IP pubblico dell'istanza master).*
+
+**2. Leggere i Log dell'Applicazione in tempo reale:**
+Per vedere i log di Spring Boot scorrere in diretta, esegui:
+```bash
+ssh -o StrictHostKeyChecking=no -i infrastructure/ansible/k3s-key.pem ubuntu@<K3S_MASTER_IP> "sudo k3s kubectl logs -l app=maps-app --tail=100 -f"
+```
+*(Premi `Ctrl+C` per uscire).*
+
+**🛠️ Risoluzione dei problemi comuni (Troubleshooting):**
+- **Error 502 Bad Gateway:** Il Load Balancer funziona, ma l'app Spring Boot non è ancora pronta (si sta avviando) oppure è crashata (magari per mancanza di memoria). Controlla i log.
+- **Error 504 Gateway Time-out:** Il Load Balancer non riesce a comunicare con i server EC2. Probabilmente le macchine sono in fase di riavvio o bloccate.
+- **Lentezza / Blocchi improvvisi:** L'utilizzo di micro-istanze AWS (`t3.micro`/`t3.small`) comporta l'uso di "Crediti CPU". Se esauriti, le performance crollano e Kubernetes potrebbe sembrare bloccato. Riavviare l'istanza azzera il problema temporaneamente.
+
+---
+
+## ⏸️ Gestione Costi: Spegnimento Temporaneo (Stop & Start)
+
+Per "spegnere" l'infrastruttura per non pagare quando non la usi (senza distruggerla):
+1. Vai sulla Console AWS -> EC2 -> Seleziona le istanze -> **Stop instance**.
+2. Quando vuoi riutilizzarla, seleziona le istanze -> **Start instance**.
+
+⏱️ **Tempi di avvio a freddo (Cold Boot):**
+Dopo aver riavviato le macchine, per avere il sito web di nuovo online occorrono in media **3 o 4 minuti** (il tempo necessario per far avviare Linux, K3s, e per l'inizializzazione del container Spring Boot). Non preoccuparti se in questi 3-4 minuti ricevi errori *502 Bad Gateway* o *504 Gateway Time-out* dal Load Balancer: è normale durante la fase di riscaldamento.
+
+⚠️ **ATTENZIONE:** Quando esegui uno *Stop* su AWS, alla successiva accensione **l'IP Pubblico delle istanze cambierà**. 
+- Il sito web continuerà a funzionare automaticamente (poiché l'ALB usa riferimenti interni).
+- **Per i successivi deploy (CI/CD)** dovrai aggiornare il secret `K3S_MASTER_IP` su GitHub Actions con il nuovo indirizzo IP.
+  - *💡 note:* puoi trovare il nuovo IP lanciando questo comando dal terminale locale:
+    ```bash
+    aws ec2 describe-instances --region eu-west-1 --filters "Name=tag:Name,Values=maps-k3s-master" --query "Reservations[*].Instances[*].PublicIpAddress" --output text
+    ```
+  - *Alternativa (via Console AWS):* 
+    1. Vai sulla Dashboard EC2 -> **Instances**.
+    2. Seleziona l'istanza `maps-k3s-master` (assicurati di essere nella regione *Irlanda eu-west-1*).
+    3. Nel riquadro inferiore (tab *Details*), copia il valore di **Public IPv4 address**.
+
+---
+
+## 🧹 Cost Saving (Distruzione Definitiva)
 
 Per smantellare l'intera infrastruttura Cloud ed evitare addebiti indesiderati a fine test/esame:
 
