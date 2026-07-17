@@ -77,7 +77,6 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.K3S_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.K3S_MASTER_IP }} >> ~/.ssh/known_hosts
 
     - name: Prepara i manifesti e i segreti sul Master K3s
       if: env.SKIP_DEPLOY != 'true'
@@ -92,7 +91,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "mkdir -p ~/k8s-manifests"
         
         # Copia i manifesti sul server master (usando /* per copiare il contenuto e non la cartella)
-        scp -r infrastructure/k8s/cloud/* ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
+        scp -o StrictHostKeyChecking=no -r infrastructure/k8s/cloud/* ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
 
     - name: Esegui il deploy tramite kubectl via SSH
       if: env.SKIP_DEPLOY != 'true'
@@ -102,7 +101,7 @@ jobs:
         API_KEY=$(aws ssm get-parameter --name "/maps-app/prod/GOOGLE_MAPS_API_KEY" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
         
         # Passa i comandi via SSH (non usare 'EOF' coi singoli apici per permettere la sostituzione variabili locale)
-        ssh ubuntu@${{ secrets.K3S_MASTER_IP }} << EOF
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} << EOF
           # Crea i segreti in K3s
           sudo k3s kubectl create configmap maps-app-cloud-config \
             --from-literal=SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
@@ -115,4 +114,4 @@ jobs:
 
           # Applica i manifesti del Deployment e del Service
           sudo k3s kubectl apply -f ~/k8s-manifests/
-        EOF
+EOF
