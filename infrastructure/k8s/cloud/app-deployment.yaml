@@ -12,6 +12,8 @@ spec:
       labels:
         app: maps-app
     spec:
+      imagePullSecrets:
+        - name: ecr-registry-secret
       containers:
       - name: maps-app
         image: IMAGE_PLACEHOLDER # Sarà rimpiazzato dalla pipeline Kustomize / sed
