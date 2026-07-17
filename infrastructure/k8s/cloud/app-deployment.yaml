@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: maps-app
 spec:
-  replicas: 2 # 2 repliche per High Availability nel cloud
+  replicas: 1 # Ridotto a 1 per evitare di saturare la RAM sulle micro-istanze
   selector:
     matchLabels:
       app: maps-app
