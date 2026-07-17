@@ -91,23 +91,21 @@ jobs:
         # Crea la cartella destinazione se non esiste (necessario per macchine appena create)
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "mkdir -p ~/k8s-manifests"
         
-        # Copia i manifesti sul server master
-        scp -r infrastructure/k8s/cloud/ ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
+        # Copia i manifesti sul server master (usando /* per copiare il contenuto e non la cartella)
+        scp -r infrastructure/k8s/cloud/* ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
 
     - name: Esegui il deploy tramite kubectl via SSH
       if: env.SKIP_DEPLOY != 'true'
       run: |
-        ssh ubuntu@${{ secrets.K3S_MASTER_IP }} << 'EOF'
-          # Recupera i segreti da AWS SSM (creati da Terraform)
-          DB_PASS=$(aws ssm get-parameter --name "/maps-app/prod/DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text || echo "default_pass")
-          API_KEY=$(aws ssm get-parameter --name "/maps-app/prod/GOOGLE_MAPS_API_KEY" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
-          
-          # La URL del DB deve essere inserita in un secret/configmap
-          DB_URL="${{ secrets.SPRING_DATASOURCE_URL }}"
-          
+        # Recupera i segreti da AWS SSM (dal runner GitHub che ha AWS CLI installata)
+        DB_PASS=$(aws ssm get-parameter --name "/maps-app/prod/DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text || echo "default_pass")
+        API_KEY=$(aws ssm get-parameter --name "/maps-app/prod/GOOGLE_MAPS_API_KEY" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
+        
+        # Passa i comandi via SSH (non usare 'EOF' coi singoli apici per permettere la sostituzione variabili locale)
+        ssh ubuntu@${{ secrets.K3S_MASTER_IP }} << EOF
           # Crea i segreti in K3s
           sudo k3s kubectl create configmap maps-app-cloud-config \
-            --from-literal=SPRING_DATASOURCE_URL="$DB_URL" \
+            --from-literal=SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
             --dry-run=client -o yaml | sudo k3s kubectl apply -f -
             
           sudo k3s kubectl create secret generic maps-app-cloud-secrets \
