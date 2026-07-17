@@ -21,8 +21,6 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: SPRING_PROFILES_ACTIVE
-          value: "cloud" # Per attivare il profilo cloud (es. SQS)
         - name: SPRING_CLOUD_AWS_SQS_ENABLED
           value: "false"
         - name: MANAGEMENT_HEALTH_RABBIT_ENABLED
