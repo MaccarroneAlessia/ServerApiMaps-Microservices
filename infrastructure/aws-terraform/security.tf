@@ -13,6 +13,15 @@ resource "aws_security_group" "k3s_nodes" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # Accesso API Kubernetes (K3s) da Internet per permettere al Worker di unirsi
+  ingress {
+    description = "K3s API da Internet"
+    from_port   = 6443
+    to_port     = 6443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   # Traffico interno al VPC (comunicazione K3s tra master e worker, es. per Flannel e API K8s su 6443)
   ingress {
     description = "Traffico interno al VPC"
