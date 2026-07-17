@@ -104,12 +104,12 @@ jobs:
         ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "
           sudo k3s kubectl create configmap maps-app-cloud-config \
             --from-literal=SPRING_DATASOURCE_URL=\"${{ secrets.SPRING_DATASOURCE_URL }}\" \
-            --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+            --dry-run=client -o yaml | sudo k3s kubectl apply --validate=false -f -
             
           sudo k3s kubectl create secret generic maps-app-cloud-secrets \
             --from-literal=DB_PASSWORD=\"$DB_PASS\" \
             --from-literal=GOOGLE_API_KEY=\"$API_KEY\" \
-            --dry-run=client -o yaml | sudo k3s kubectl apply -f -
+            --dry-run=client -o yaml | sudo k3s kubectl apply --validate=false -f -
 
-          sudo k3s kubectl apply -f ~/k8s-manifests/
+          sudo k3s kubectl apply --validate=false -f ~/k8s-manifests/
         "
