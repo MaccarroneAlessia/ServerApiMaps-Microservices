@@ -88,6 +88,9 @@ jobs:
         # Sostituisci il placeholder con l'immagine buildata
         sed -i "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" infrastructure/k8s/cloud/app-deployment.yaml
         
+        # Crea la cartella destinazione se non esiste (necessario per macchine appena create)
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "mkdir -p ~/k8s-manifests"
+        
         # Copia i manifesti sul server master
         scp -r infrastructure/k8s/cloud/ ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
 
