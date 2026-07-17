@@ -53,31 +53,52 @@ Le best-practice K8s implementate includono:
 
 ## 🚀 Getting Started
 
-Il progetto è strutturato in due fasi eseguibili. 
+Il progetto può essere eseguito localmente o sul Cloud AWS. Prima di iniziare, è fondamentale configurare i prerequisiti comuni.
 
-### Fase 1: Esecuzione Locale (Docker & K8s locale)
+### 🔑 Prerequisito: Google Maps API Key
+Per il corretto funzionamento dell'applicativo (geocoding e analisi del traffico), è richiesta una chiave API di Google Maps valida:
+1. Vai sulla [Google Cloud Console - API e Servizi](https://console.cloud.google.com/apis/credentials).
+2. Crea un nuovo progetto (se non lo hai già) e assicurati che la fatturazione sia abilitata.
+3. Clicca in alto su **Crea credenziali** -> **Chiave API**.
+4. Copia la chiave generata. *(chiave senza restrizioni di indirizzo IP, altrimenti il Load Balancer cloud verrebbe bloccato).*
 
-**Prerequisiti:** Docker Desktop avviato con Kubernetes abilitato.
+---
 
-1. **Build dell'immagine locale**:
+### Fase 1: Esecuzione Locale (Docker & Kubernetes locale)
+
+**Prerequisiti Locali:** 
+- Avere **Docker Desktop** installato e *avviato* sul proprio computer.
+- Dalle impostazioni di Docker Desktop (Settings), andare su **Kubernetes** e spuntare **"Enable Kubernetes"**.
+
+1. **Configurazione dei Segreti (`mysql-secret.yaml`)**:
+   Prima di fare il deploy locale, devi inserire la tua API Key nel cluster. Kubernetes richiede che i segreti siano in formato **Base64**.
+   - Converti la tua API Key in Base64 (puoi usare un tool online o da terminale: `echo -n "TUA_CHIAVE" | base64`).
+   - Apri il file `infrastructure/k8s/mysql-secret.yaml`.
+   - Modifica il valore `GOOGLE_MAPS_API_KEY: ` inserendo la tua stringa in Base64 appena generata. (Fai lo stesso per le password del DB se le hai modificate).
+
+2. **Build dell'immagine locale**:
    ```bash
    cd server-springboot-maps
    docker build -t maps-app:latest .
    ```
-2. **Deploy sul cluster locale**:
+
+3. **Deploy sul cluster locale**:
    ```bash
    cd ..
    kubectl apply -f infrastructure/k8s/
    ```
-3. L'applicazione sarà disponibile su: `http://localhost:30080`
+
+4. L'applicazione sarà disponibile su: `http://localhost:30080`
+
+---
 
 ### Fase 2: Deploy in Cloud (AWS & Terraform)
 
-Il deploy in cloud è **totalmente automatizzato** tramite script multi-piattaforma. Crea da zero la VPC, le macchine EC2, installa Kubernetes, genera i secret e lancia l'applicativo.
+Il deploy in cloud è **totalmente automatizzato** tramite script multi-piattaforma. Crea da zero la VPC, le macchine EC2, installa Kubernetes e lancia l'applicativo, iniettando automaticamente i segreti in modo sicuro.
 
 **Prerequisiti:** Account AWS configurato (chiavi in `~/.aws/credentials`), Terraform installato.
 
-#### Su macOS / Linux (via Ansible):
+#### Su macOS / Linux / WSL (via Ansible):
 ```bash
 cd infrastructure
 chmod +x deploy_k3s_linux.sh
@@ -90,7 +111,7 @@ cd infrastructure
 .\deploy_k3s_windows.ps1 -DbPassword "PasswordDB" -GoogleApiKey "ApiKeyGoogle"
 ```
 
-> **Nota:** Al termine del processo (circa 5-10 minuti), lo script restituirà l'URL dell'Application Load Balancer pubblico su cui testare l'app in produzione.
+> **Nota:** Lo script PowerShell si occuperà automaticamente di codificare in Base64 la API Key e la password del DB, per poi iniettarle nei Secret di K3s in modo sicuro, senza esporle nel file YAML hardcodato. Al termine del processo, lo script restituirà l'URL dell'Application Load Balancer pubblico.
 
 ---
 
@@ -101,6 +122,15 @@ Ad ogni commit sul branch `main`, la pipeline di GitHub Actions si occupa di:
 2. Se i test passano, eseguire la build dell'immagine Docker.
 3. Inviare l'immagine su **AWS ECR** (Elastic Container Registry).
 4. Avviare un **Rolling Update** su Kubernetes (K3s Master Node) senza downtime tramite SSH remoto.
+
+### 🔐 Configurazione dei Segreti di GitHub Actions
+Per far funzionare il deploy automatico su cloud a ogni `git push`, devi configurare i seguenti **Repository Secrets** su GitHub (vai su **Settings > Secrets and variables > Actions > New repository secret**):
+
+- `AWS_ACCESS_KEY_ID`: La tua chiave di accesso pubblica dell'account AWS.
+- `AWS_SECRET_ACCESS_KEY`: La tua chiave segreta dell'account AWS.
+- `K3S_MASTER_IP`: L'indirizzo IP pubblico del nodo Master (lo vedi stampato alla fine dell'esecuzione dello script PowerShell o Terraform).
+- `K3S_SSH_KEY`: Il contenuto testuale completo della chiave privata SSH generata da Terraform per accedere alle macchine (apri con il blocco note il file locale `infrastructure/ansible/k3s-key.pem` e copia tutto il contenuto, compresi i tag BEGIN/END).
+- `SPRING_DATASOURCE_URL`: L'URL di connessione al database RDS, nel formato esatto (l'endpoint RDS viene restituito dall'output finale dello script o di Terraform).
 
 ---
 
