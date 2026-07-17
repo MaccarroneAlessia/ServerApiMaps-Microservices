@@ -1,10 +1,10 @@
 # AWS COMPUTE INFRASTRUCTURE (EC2)
 
-# provisiona le macchine virtuali su cui girerà Kubernetes (K3s).
-# Implementa la creazione di chiavi SSH in modo dinamico e definisce i due nodi:
-# - k3s_master (t3.small): Gestisce il control plane del cluster.
-# - k3s_worker (t3.micro): Esegue fisicamente il container Spring Boot.
-# Usa local_file per salvare chiavi e IP in locale per permetterne l'uso ad Ansible.
+# Provisions the virtual machines where Kubernetes (K3s) will run.
+# Dynamically creates SSH keys and defines the two nodes:
+# - k3s_master (t3.small): Manages the cluster control plane.
+# - k3s_worker (t3.micro): Physically runs the Spring Boot container.
+# Uses local_file to locally save keys and IPs, making them available for Ansible.
 
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -19,7 +19,7 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
-# Genera chiave SSH dinamicamente per Ansible
+# Dynamically generate SSH key for Ansible
 resource "tls_private_key" "ssh_key" {
   algorithm = "RSA"
   rsa_bits  = 4096
@@ -56,7 +56,7 @@ resource "aws_instance" "k3s_worker" {
   }
 }
 
-# Genera il file inventory per Ansible basato sul template
+# Generate Ansible inventory file based on the template
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/../ansible/inventory.tmpl", {
     master_ip = aws_instance.k3s_master.public_ip
@@ -65,7 +65,7 @@ resource "local_file" "ansible_inventory" {
   filename = "${path.module}/../ansible/inventory.ini"
 }
 
-# Salva la chiave SSH in locale (ignorato da git) per l'uso da parte di Ansible e GitHub Actions
+# Save SSH key locally (ignored by git) for Ansible and GitHub Actions to use
 resource "local_file" "private_key" {
   content  = tls_private_key.ssh_key.private_key_pem
   filename = "${path.module}/../ansible/k3s-key.pem"

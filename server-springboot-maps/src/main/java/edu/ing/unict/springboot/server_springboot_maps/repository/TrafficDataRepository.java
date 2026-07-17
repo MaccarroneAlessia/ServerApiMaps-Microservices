@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TrafficDataRepository extends JpaRepository<TrafficData, Long> {
-    // metodi CRUD automatici di Spring Data JPA 
-    // per il controllo prima dell'eliminazione della località
+    // Automatic CRUD methods from Spring Data JPA 
+    // Used for validation checks prior to deleting a location
     //List<TrafficData> findByOriginIdOrDestinationId(Long locationId);
     
     List<TrafficData> findByOrigin_IdOrDestination_Id(Long originLocationId, Long destinationLocationId);

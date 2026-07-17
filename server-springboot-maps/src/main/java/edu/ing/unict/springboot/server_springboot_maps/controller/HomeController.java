@@ -9,22 +9,22 @@ import edu.ing.unict.springboot.server_springboot_maps.util.ApiKeyManager;
 @Controller
 public class HomeController {
     
-    //@Value("${google.maps.api.key}") // Inietta la chiave API dal application.properties
+    //@Value("${google.maps.api.key}") // Injects API key from application.properties
     //private String googleMapsApiKey;
 
-    private final ApiKeyManager apiKeyManager; // Dichiarazione come finale per l'iniezione
+    private final ApiKeyManager apiKeyManager; // Declared as final for injection
 
-    // Inietta ApiKeyManager tramite il costruttore
+    // Injects ApiKeyManager via constructor
     public HomeController(ApiKeyManager apiKeyManager) {
         this.apiKeyManager = apiKeyManager;
     }
 
-    @GetMapping("/") // URL radice localhost:8080
+    @GetMapping("/") // Root URL localhost:8080
     public String home(Model model) {
-        // chiave API
+        // API key
         String googleMapsApiKey = apiKeyManager.getGoogleApiKey();
         model.addAttribute("googleMapsApiKey", googleMapsApiKey);
-        return "home"; // template HTML
+        return "home"; // HTML template
     }
 
 }

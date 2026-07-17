@@ -1,45 +1,45 @@
 # AWS Terraform (Infrastructure as Code)
 
-**Terraform** è uno strumento di Infrastructure as Code (IaC) impiegato per dichiarare e orchestrare l'architettura hardware (Reti, EC2, Database, Load Balancers) attraverso file di configurazione in sintassi HCL. Questa cartella ospita il codice dedicato in modo specifico al provider di **Amazon Web Services (AWS)**.
+**Terraform** is an Infrastructure as Code (IaC) tool used to declare and orchestrate hardware architecture (Networks, EC2, Databases, Load Balancers) via configuration files in HCL syntax. This folder hosts code specifically dedicated to the **Amazon Web Services (AWS)** provider.
 
-L'infrastruttura reale, la topologia di rete e i server fisici su cui ruota l'applicazione risiedono qui in forma di codice. Sostituendo la tradizionale "ClickOps" dalla AWS Web Console con Terraform, l'intero data center aziendale diviene versionabile, riproducibile al 100% e documentato per design.
+The real infrastructure, network topology, and physical servers running the application reside here as code. By replacing traditional "ClickOps" from the AWS Web Console with Terraform, the entire corporate data center becomes versionable, 100% reproducible, and documented by design.
 
-## 📂 Struttura
+## 📂 Structure
 
-- **`main.tf`**: File principale per la dichiarazione della configurazione base e dei provider.
-- **`network.tf`**: Dichiara la rete VPC privata, definendo Subnet pubbliche e private, Internet Gateway e Route Tables.
-- **`ec2.tf`**: Esegue il provisioning dei nodi computazionali EC2 che ospiteranno Kubernetes (Master/Worker).
-- **`rds.tf`**: Dichiara il database gestito Amazon RDS per MySQL.
-- **`alb.tf`**: Definisce l'Application Load Balancer necessario per bilanciare il traffico tra i nodi Worker attivi.
-- **`security.tf`**: Configura i Security Group per garantire comunicazioni sicure tramite regole firewall ben precise tra i componenti.
-- **`ssm.tf`**: Permette l'accesso controllato ai Parameter Store AWS per recuperare credenziali in modo sicuro senza hardcodarle.
-- **`variables.tf`** e **`outputs.tf`**: Definiscono rispettivamente i parametri di input iniettabili e gli output restituiti al termine dell'installazione.
+- **`main.tf`**: Main file for declaring base configuration and providers.
+- **`network.tf`**: Declares the private VPC network, defining public and private Subnets, Internet Gateways, and Route Tables.
+- **`ec2.tf`**: Provisions the EC2 compute nodes that will host Kubernetes (Master/Worker).
+- **`rds.tf`**: Declares the managed Amazon RDS database for MySQL.
+- **`alb.tf`**: Defines the Application Load Balancer necessary to balance traffic across active Worker nodes.
+- **`security.tf`**: Configures Security Groups to ensure secure communications via precise firewall rules among components.
+- **`ssm.tf`**: Allows controlled access to AWS Parameter Store to securely fetch credentials without hardcoding them.
+- **`variables.tf`** and **`outputs.tf`**: Define injectable input parameters and outputs returned upon completion, respectively.
 
-## 💡 Architettura e Design
+## 💡 Architecture & Design
 
-1. **IaaS Puro (Cluster Kubernetes su EC2)**: Si è optato per il mantenimento di un cluster puro lanciando macchine EC2 "nude" su cui installare autonomamente K3s, invece di abbracciare servizi managed costosi come AWS EKS. Questa scelta restituisce il massimo controllo sui server sottostanti ottimizzando pesantemente i costi per test e ambienti di piccola/media taglia.
-2. **Isolamento del Database**: Il database MySQL in RDS risiede confinato in una Subnet Privata. È totalmente irraggiungibile da Internet, risultando accessibile esclusivamente dai nodi Kubernetes Worker tramite precise regole di Security Group.
-3. **SSM Parameter Store per i Secret**: Le stringhe sensibili (password del DB, chiavi API) vengono lette a runtime dinamicamente tramite AWS SSM, impedendo ogni rischio di leak su Git.
+1. **Pure IaaS (Kubernetes Cluster on EC2)**: We opted to maintain a pure cluster by launching "bare" EC2 machines to independently install K3s, rather than embracing expensive managed services like AWS EKS. This choice yields maximum control over the underlying servers, heavily optimizing costs for testing and small/medium-sized environments.
+2. **Database Isolation**: The MySQL database in RDS is confined to a Private Subnet. It is completely unreachable from the Internet, being exclusively accessible by the Kubernetes Worker nodes through strict Security Group rules.
+3. **SSM Parameter Store for Secrets**: Sensitive strings (DB passwords, API keys) are dynamically read at runtime via AWS SSM, preventing any risk of leaks on Git.
 
-## 🚀 Comandi per il Deploy
+## 🚀 Deployment Commands
 
-L'orchestrazione è primariamente demandata allo script PowerShell radice. 
-Per la gestione manuale del provisioning su AWS:
+Orchestration is primarily delegated to the root PowerShell script. 
+For manual provisioning management on AWS:
 
 ```bash
 cd infrastructure/aws-terraform
 
-# Scarica i plugin provider necessari (AWS)
+# Download the required provider plugins (AWS)
 terraform init
 
-# Genera un'anteprima delle risorse che verrebbero create
-terraform plan -var="db_password=LA_TUA_PASSWORD" -var="google_api_key=LA_TUA_APIKEY"
+# Generate an execution plan previewing the resources to be created
+terraform plan -var="db_password=YOUR_PASSWORD" -var="google_api_key=YOUR_APIKEY"
 
-# Lancia il provisioning reale in Cloud
-terraform apply -var="db_password=LA_TUA_PASSWORD" -var="google_api_key=LA_TUA_APIKEY"
+# Execute real cloud provisioning
+terraform apply -var="db_password=YOUR_PASSWORD" -var="google_api_key=YOUR_APIKEY"
 ```
 
-Per abbattere l'infrastruttura ed evitare costi al termine dell'utilizzo:
+To tear down the infrastructure and avoid costs when finished:
 ```bash
-terraform destroy -var="db_password=LA_TUA_PASSWORD" -var="google_api_key=LA_TUA_APIKEY"
+terraform destroy -var="db_password=YOUR_PASSWORD" -var="google_api_key=YOUR_APIKEY"
 ```

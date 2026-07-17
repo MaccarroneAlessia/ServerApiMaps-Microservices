@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-// Componente di Spring che implementa l'interfaccia GoogleMapsRemoteFacade.
-// Questo significa che fornisce l'implementazione concreta per le operazioni definite nella facade.
+// Spring component implementing the GoogleMapsRemoteFacade interface.
+// Provides the concrete implementation for the operations defined in the facade.
 @Component
 public class GoogleMapsClient implements GoogleMapsRemoteFacade {
     private static final Logger logger = LoggerFactory.getLogger(GoogleMapsClient.class);
@@ -28,7 +28,7 @@ public class GoogleMapsClient implements GoogleMapsRemoteFacade {
     private final ApiKeyManager apiKeyManager;
     private final AppConfig appConfig;
 
-    // Costruttore. Spring inietta automaticamente le dipendenze necessarie.
+    // Constructor. Spring automatically injects the required dependencies.
     public GoogleMapsClient(RestTemplate restTemplate, ApiKeyManager apiKeyManager, AppConfig appConfig) {
         this.restTemplate = restTemplate;
         this.apiKeyManager = apiKeyManager;
@@ -36,107 +36,107 @@ public class GoogleMapsClient implements GoogleMapsRemoteFacade {
     }
 
     /**
-     * Recupera i dettagli del percorso dall'API di Google Maps in modo asincrono.
-     * Utilizza pattern di resilienza (Circuit Breaker, Retry, Time Limiter)
-     * per gestire fallimenti e timeout delle chiamate esterne.
+     * Fetches route details from the Google Maps API asynchronously.
+     * Uses resilience patterns (Circuit Breaker, Retry, Time Limiter)
+     * to manage failures and timeouts of external calls.
      *
-     * @param origin Il punto di partenza del percorso.
-     * @param destination Il punto di arrivo del percorso.
-     * @return Un CompletableFuture che conterrà i dettagli del percorso (RouteDetails)
-     * o un'eccezione in caso di fallimento.
+     * @param origin The starting point of the route.
+     * @param destination The destination of the route.
+     * @return A CompletableFuture containing the RouteDetails 
+     * or an exception in case of failure.
      */
-    // Il pattern Circuit Breaker previene che l'applicazione tenti ripetutamente un'operazione fallita.
-    // Se il circuito si apre, il controllo passa al metodo fallback (fetchRouteDetailsFallback).
-    // Il pattern Retry tenta di rieseguire un'operazione fallita un certo numero di volte.
-    // Il Time Limiter impone un limite di tempo all'esecuzione del metodo; se non completa in tempo, viene interrotto.
-    // Tutte queste configurazioni sono definite per il nome "googleApi".
+    // The Circuit Breaker pattern prevents the application from repeatedly attempting a failing operation.
+    // If the circuit opens, control is passed to the fallback method (fetchRouteDetailsFallback).
+    // The Retry pattern attempts to re-execute a failed operation a specified number of times.
+    // The Time Limiter enforces a time bound on the method execution; if it does not complete in time, it is interrupted.
+    // All these configurations are bound to the "googleApi" instance.
     @CircuitBreaker(name = "googleApi", fallbackMethod = "fetchRouteDetailsFallback")
     @Retry(name = "googleApi")
     @TimeLimiter(name = "googleApi")
-    @Override // Implementa il metodo definito nell'interfaccia GoogleMapsRemoteFacade
+    @Override // Implements the method defined in the GoogleMapsRemoteFacade interface
     public CompletableFuture<RouteDetails> fetchRouteDetails(String origin, String destination) {
-        // Esegue l'operazione in un thread separato per non bloccare il thread chiamante.
+        // Executes the operation in a separate thread to avoid blocking the caller.
         return CompletableFuture.supplyAsync(() -> {
-            // Costruisce l'URL per la chiamata all'API Google Directions.
-            // Include origine, destinazione, modalità di guida, tempo di partenza "now" per il traffico in tempo reale e la chiave API.
+            // Builds the URL for the Google Directions API call.
+            // Includes origin, destination, driving mode, departure time "now" for real-time traffic, and the API key.
             String apiUrl = UriComponentsBuilder.fromHttpUrl(appConfig.getGoogleDirectionsApiUrl())
                     .queryParam("origin", origin)
                     .queryParam("destination", destination)
                     .queryParam("mode", "driving")
-                    .queryParam("departure_time", "now") // Per traffico in tempo reale
+                    .queryParam("departure_time", "now") // For real-time traffic
                     .queryParam("key", apiKeyManager.getGoogleApiKey())
                     .toUriString();
 
-            logger.info("       ****Recupero dei dettagli del percorso dall'API di Google: {}", apiUrl);
+            logger.info("       ****Fetching route details from Google API: {}", apiUrl);
             try {
-                // Esegue la richiesta HTTP GET all'API di Google e mappa la risposta JSON in un JsonNode.
+                // Executes the HTTP GET request to the Google API and maps the JSON response into a JsonNode.
                 ResponseEntity<JsonNode> response = restTemplate.getForEntity(apiUrl, JsonNode.class);
 
-                // Controlla se la chiamata HTTP ha avuto successo (codice di stato 2xx) e se il corpo della risposta non è nullo.
+                // Checks if the HTTP call was successful (2xx status code) and the response body is not null.
                 if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                    logger.info("       ****Estrazione dei dati: {}", apiUrl);
+                    logger.info("       ****Extracting data: {}", apiUrl);
                     JsonNode root = response.getBody();
                     JsonNode routes = root.path("routes");
 
-                    // Verifica se sono stati trovati percorsi.
+                    // Verifies if routes were found.
                     if (routes.isArray() && routes.size() > 0) {
-                        JsonNode firstRoute = routes.get(0); // Prende il primo percorso.
-                        String summary = firstRoute.path("summary").asText(); // Estrae il riepilogo del percorso.
+                        JsonNode firstRoute = routes.get(0); // Takes the first route.
+                        String summary = firstRoute.path("summary").asText(); // Extracts the route summary.
 
-                        // Estrae le "gambe" (segments) del percorso.
+                        // Extracts the route legs.
                         JsonNode legs = firstRoute.path("legs");
 
-                        // Verifica se ci sono "gambe" nel percorso.
+                        // Verifies if there are legs in the route.
                         if (legs.isArray() && legs.size() > 0) {
-                            JsonNode firstLeg = legs.get(0); // Prende la prima "gamba".
+                            JsonNode firstLeg = legs.get(0); // Takes the first leg.
 
-                            // Estrae la durata del percorso senza traffico.
+                            // Extracts the route duration without traffic.
                             JsonNode durationNode = firstLeg.path("duration");
                             DurationInfo duration = null;
                             if (!durationNode.isMissingNode() && !durationNode.isNull()) {
                                 duration = new DurationInfo(durationNode.path("text").asText(), durationNode.path("value").asInt());
                             }
 
-                            // Estrae la durata del percorso con traffico in tempo reale.
+                            // Extracts the route duration with real-time traffic.
                             JsonNode durationInTrafficNode = firstLeg.path("duration_in_traffic");
                             DurationInfo durationInTraffic = null;
                             if (!durationInTrafficNode.isMissingNode() && !durationInTrafficNode.isNull()) {
                                 durationInTraffic = new DurationInfo(durationInTrafficNode.path("text").asText(), durationInTrafficNode.path("value").asInt());
                             }
 
-                            logger.info("       ****Dettagli del percorso analizzati con successo per  {}: {} (Traffic: {})", summary, duration != null ? duration.getText() : "N/A", durationInTraffic != null ? durationInTraffic.getText() : "N/A");
-                            // Restituisce un nuovo oggetto RouteDetails con le informazioni estratte.
+                            logger.info("       ****Route details successfully parsed for {}: {} (Traffic: {})", summary, duration != null ? duration.getText() : "N/A", durationInTraffic != null ? durationInTraffic.getText() : "N/A");
+                            // Returns a new RouteDetails object with the extracted information.
                             return new RouteDetails(summary, duration, durationInTraffic);
                         }
                     }
-                    logger.warn("       *******La risposta dell'API di Google non conteneva i dati relativi al percorso previsti per {}-{} *****", origin, destination);
-                    throw new RuntimeException("Risposta Google API analizzata fallita: nessun dato del percorso.");
+                    logger.warn("       *******Google API response did not contain expected route data for {}-{} *****", origin, destination);
+                    throw new RuntimeException("Google API response parsing failed: no route data.");
                 } else {
-                    logger.error("       ****** Chiamata Google API fallita con status {}: {}*****", response.getStatusCode(), response.getBody());
-                    throw new RuntimeException("Chiamata Google API fallita con status: " + response.getStatusCode());
+                    logger.error("       ****** Google API call failed with status {}: {}*****", response.getStatusCode(), response.getBody());
+                    throw new RuntimeException("Google API call failed with status: " + response.getStatusCode());
                 }
             } catch (ResourceAccessException e) {
-                // Cattura eccezioni relative a problemi di connessione o timeout.
-                logger.error("       ****TIMEOUT di connessione o lettura alle Google API per {}-{}: {}*****", origin, destination, e.getMessage());
-                throw new RuntimeException("Timeout di connessione/lettura alle Api Google", e);
+                // Catches exceptions related to connection issues or timeouts.
+                logger.error("       ****Google API connection or read TIMEOUT for {}-{}: {}*****", origin, destination, e.getMessage());
+                throw new RuntimeException("Google API connection/read timeout", e);
             } catch (Exception e) {
-                // Cattura altre eccezioni generiche durante la chiamata API o il parsing.
-                logger.error("       ******Chiamata alle Google API fallita per {}-{}: {}*****", origin, destination, e.getMessage());
-                throw new RuntimeException("Chiamata Api Google fallita", e);
+                // Catches any other generic exceptions during the API call or parsing.
+                logger.error("       ******Google API call failed for {}-{}: {}*****", origin, destination, e.getMessage());
+                throw new RuntimeException("Google API call failed", e);
             }
         });
     }
 
     /**
-     * Metodo di fallback chiamato da Resilience4j in caso di fallimento della chiamata API.
+     * Fallback method invoked by Resilience4j upon API call failure.
      *
-     * @param origin Il punto di partenza del percorso.
-     * @param destination Il punto di arrivo del percorso.
-     * @param t La causa del fallimento.
-     * @return Un CompletableFuture già completato con un valore nullo, indicando il fallimento.
+     * @param origin The starting point of the route.
+     * @param destination The destination of the route.
+     * @param t The cause of the failure.
+     * @return A CompletableFuture already completed with a null value, indicating failure.
      */
     public CompletableFuture<RouteDetails> fetchRouteDetailsFallback(String origin, String destination, Throwable t) {
-        logger.error("       ******Metodo Fallback attivato per le Google API (origine: {}, destinazione: {}) a causa di: {}. RESTITUZIONE DI DATI NULLI *****.", origin, destination, t.getMessage());
+        logger.error("       ******Fallback method triggered for Google API (origin: {}, destination: {}) due to: {}. RETURNING NULL DATA *****.", origin, destination, t.getMessage());
         return CompletableFuture.completedFuture(null);
     }
 }

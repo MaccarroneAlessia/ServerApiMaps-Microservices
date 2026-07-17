@@ -1,34 +1,34 @@
 # Terraform (Local VMs via Multipass)
 
-Questa implementazione isolata di **Terraform** è preposta alla creazione rapida di un ambiente locale di test, tramite il provider **Multipass** sviluppato da Canonical. Multipass opera come un gestore di Macchine Virtuali leggero, ideale per instaurare un ambiente basato nativamente su Ubuntu senza appesantire il sistema con classici hypervisor monolitici.
+This isolated **Terraform** implementation is dedicated to the rapid creation of a local testing environment, using the **Multipass** provider developed by Canonical. Multipass operates as a lightweight Virtual Machine manager, ideal for establishing a natively Ubuntu-based environment without bogging down the system with classic monolithic hypervisors.
 
-Mentre la componente `aws-terraform` si occupa della Produzione in Cloud, questa directory crea un vero e proprio Lab Locale. Funziona creando un cluster multi-nodo isolato all'interno del proprio computer locale su cui testare o sviluppare gli applicativi Kubernetes senza intaccare in alcun modo i costi di AWS.
+While the `aws-terraform` component handles Cloud Production, this directory builds a full-fledged Local Lab. It works by creating an isolated multi-node cluster right on your local computer to test or develop Kubernetes applications without incurring any AWS costs whatsoever.
 
-## 📂 Struttura
+## 📂 Structure
 
-- **`main.tf`**: Istruisce Multipass al download dell'immagine base (es. Ubuntu Jammy 22.04 LTS) e alla configurazione di due VM separate (un Master e un Worker). Regola anche le risorse assegnate (CPU, RAM, storage) e genera gli IP dinamici tramite i template di Ansible servendosi di Provisioner locali.
-- **`outputs.tf`**: File dedicato all'output per mostrare rapidamente a terminale gli indirizzi IP appena assegnati ai nodi locali.
+- **`main.tf`**: Instructs Multipass to download the base image (e.g., Ubuntu Jammy 22.04 LTS) and configures two separate VMs (one Master and one Worker). It also regulates allocated resources (CPU, RAM, storage) and generates dynamic IPs via Ansible templates using local Provisioners.
+- **`outputs.tf`**: File dedicated to the output, to rapidly display the newly assigned IP addresses for the local nodes in the terminal.
 
-## 💡 Architettura e Design
+## 💡 Architecture & Design
 
-1. **Ottimizzazione Locale tramite Multipass**: Si tratta di una scelta architetturale mirata ad avere la migliore e più veloce esperienza locale per Ubuntu su Windows o Mac. Multipass simula in maniera sorprendentemente vicina l'esperienza cloud AWS EC2 per i test di infrastruttura.
-2. **Generazione Dinamica dell'Inventory**: Sfruttando la risorsa `local_file` di Terraform accoppiata alla direttiva template, l'esecutore inietta autonomamente gli IP generati durante l'accensione all'interno della directory `ansible`. In questo modo Terraform ed Ansible dialogano nativamente.
+1. **Local Optimization via Multipass**: This is an architectural choice aimed at providing the best and fastest local experience for Ubuntu on Windows or Mac. Multipass simulates the AWS EC2 cloud experience surprisingly well for infrastructure testing.
+2. **Dynamic Inventory Generation**: By leveraging the Terraform `local_file` resource coupled with the template directive, the executor autonomously injects the IPs generated during startup directly into the `ansible` directory. In this way, Terraform and Ansible communicate natively.
 
-## 🚀 Comandi per il Deploy
+## 🚀 Deployment Commands
 
-Per poter creare l'ambiente virtuale, occorre aver installato Terraform e Multipass.
+To create the virtual environment, you must have Terraform and Multipass installed.
 
 ```bash
 cd infrastructure/terraform
 
-# Inizializza il provider locale
+# Initialize the local provider
 terraform init
 
-# Genera e accende le macchine virtuali locali
+# Generate and start the local virtual machines
 terraform apply -auto-approve
 
-# Dopo il test, distrugge le VM liberando spazio su disco
+# After testing, destroy the VMs to free up disk space
 terraform destroy -auto-approve
 ```
 
-Successivamente al `terraform apply`, è possibile recarsi nella directory Ansible per eseguire il provisioning di K3s al loro interno.
+Following the `terraform apply`, you can navigate to the Ansible directory to execute K3s provisioning within them.

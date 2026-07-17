@@ -1,17 +1,17 @@
 variable "aws_region" {
-  description = "AWS Region per il deployment"
+  description = "AWS Region for deployment"
   type        = string
-  default     = "eu-west-1" # Puoi cambiarlo con la tua region preferita (es. eu-south-1 per Milano)
+  default     = "eu-west-1" # You can change this to your preferred region (e.g. eu-south-1 for Milan)
 }
 
 variable "db_password" {
-  description = "La password per l'amministratore del database RDS (verrà salvata cifrata)"
+  description = "Password for the RDS database administrator (will be saved encrypted)"
   type        = string
   sensitive   = true
 }
 
 variable "google_api_key" {
-  description = "La chiave API per Google Maps (verrà salvata cifrata)"
+  description = "Google Maps API key (will be saved encrypted)"
   type        = string
   sensitive   = true
 }

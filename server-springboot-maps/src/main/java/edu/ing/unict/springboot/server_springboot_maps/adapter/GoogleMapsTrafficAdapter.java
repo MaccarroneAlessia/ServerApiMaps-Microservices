@@ -14,63 +14,63 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-// Implementazione Adapter
+// Adapter Implementation
 @Component
 public class GoogleMapsTrafficAdapter implements TrafficDataProvider {
     private final GoogleMapsRemoteFacade googleMapsRemoteFacade;
     private final GeocodingService geocodingService;
-    // per eseguire le chiamate di geocoding in modo asincrono
+    // Thread pool to execute geocoding calls asynchronously
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
 
     public GoogleMapsTrafficAdapter(GoogleMapsRemoteFacade googleMapsRemoteFacade, GeocodingService geocodingService) {
-    this.googleMapsRemoteFacade = googleMapsRemoteFacade;
-    this.geocodingService = geocodingService;
-}
+        this.googleMapsRemoteFacade = googleMapsRemoteFacade;
+        this.geocodingService = geocodingService;
+    }
 
     @Override
     public CompletableFuture<RouteDetails> getTrafficDetails(String origin, String destination) {
-        // L'adapter delega semplicemente la chiamata al client specifico, ora tramite la facade
+        // The adapter delegates the call to the specific client via the facade
         return googleMapsRemoteFacade.fetchRouteDetails(origin, destination);
     }
 
     /**
-     * Esegue la geocodifica di un indirizzo in modo asincrono.
+     * Geocodes an address asynchronously.
      *
-     * @param address L'indirizzo da geocodificare.
-     * @return Un CompletableFuture che conterrà il GeocodingResult o un'eccezione.
+     * @param address The address to geocode.
+     * @return A CompletableFuture containing the GeocodingResult or an exception.
      */
     public CompletableFuture<GeocodingResult> geocodeAddressAsync(String address) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return geocodingService.geocodeAddress(address);
             } catch (IOException | InterruptedException | ApiException e) {
-                // Avvolge l'eccezione in un'eccezione di runtime per il CompletableFuture
-                throw new RuntimeException("Errore durante la geocodifica dell'indirizzo: " + address, e);
+                // Wraps the checked exception into a runtime exception for the CompletableFuture
+                throw new RuntimeException("Error during address geocoding: " + address, e);
             }
-        }, executorService); // Esegue il task sull'executorService
+        }, executorService); // Executes the task on the executorService
     }
 
     /**
-     * Esegue la geocodifica inversa per ottenere l'indirizzo da coordinate in modo asincrono.
+     * Performs reverse geocoding to retrieve an address from coordinates asynchronously.
      *
-     * @param latitude La latitudine.
-     * @param longitude La longitudine.
-     * @return Un CompletableFuture che conterrà l'indirizzo formattato o null.
+     * @param latitude The latitude.
+     * @param longitude The longitude.
+     * @return A CompletableFuture containing the formatted address or null.
      */
     public CompletableFuture<String> getAddressFromCoordinatesAsync(double latitude, double longitude) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return geocodingService.getAddressFromCoordinates(latitude, longitude);
             } catch (Exception e) {
-                // Logga l'errore e restituisce null o rilancia un'eccezione appropriata
-                System.err.println("Errore durante la geocodifica inversa per coordinate (" + latitude + "," + longitude + "): " + e.getMessage());
-                return null; // O throw new RuntimeException("...", e);
+                // Logs the error and returns null or throws an appropriate exception
+                System.err.println("Error during reverse geocoding for coordinates (" + latitude + "," + longitude + "): " + e.getMessage());
+                return null; 
             }
-        }, executorService); // Esegue il task sull'executorService
+        }, executorService); // Executes the task on the executorService
     }
 
-    //  per lo shutdown dell'executor service 
+    // Gracefully shuts down the executor service 
     public void shutdown() {
         executorService.shutdown();
     }

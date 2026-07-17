@@ -6,7 +6,7 @@ import edu.ing.unict.springboot.server_springboot_maps.repository.LatLngReposito
 import edu.ing.unict.springboot.server_springboot_maps.repository.TrafficDataRepository;
 import edu.ing.unict.springboot.server_springboot_maps.service.GeocodingService;
 import edu.ing.unict.springboot.server_springboot_maps.service.LatLngService;
-import edu.ing.unict.springboot.server_springboot_maps.service.TrafficCollectionService; // Useremo il servizio esistente
+import edu.ing.unict.springboot.server_springboot_maps.service.TrafficCollectionService; 
 import jakarta.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,27 +32,19 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-//controller che gestirà le richieste per la pagina web dashboard e invierà i dati al template Thymeleaf
+// Controller to manage web dashboard requests and forward data to the Thymeleaf template
 @Controller
 public class TrafficWebController {
 
-    //@Autowired
     private final LatLngService latLngService;
 
-    // Iniezione delle dipendenze tramite @Autowired
-    //@Autowired
-    //private LatLngRepository latLngRepository;
-
-    //@Autowired
-    //private TrafficDataRepository trafficDataRepository;
-
     @Autowired
-    private TrafficCollectionService trafficCollectionService; // Servizio per la raccolta traffico
+    private TrafficCollectionService trafficCollectionService; // Traffic collection service
 
-    @Autowired // GeocodingService servizio google maps
+    @Autowired // Google Maps geocoding service
     private GeocodingService geocodingService;
 
-    // Formatter per la visualizzazione delle date -> static final per efficienza
+    // Formatter for date rendering -> static final for efficiency
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     private static final Logger logger = LoggerFactory.getLogger(TrafficCollectionService.class);
@@ -64,51 +56,50 @@ public class TrafficWebController {
 
     @PostConstruct
     public void init() {
-        //  dati iniziali o  solo l'interfaccia
+        // Initial setup or interface-only initialization
     }
 
-    // Nuovo metodo per aggiungere località tramite indirizzo
+    // New method to add locations via physical address
     @PostMapping("/add-location-by-address")
     public String addLocationByAddress(@RequestParam("addressInput") String address, RedirectAttributes redirectAttributes) {
         try {
             GeocodingResult result = geocodingService.geocodeAddress(address);
 
             if (result != null) {
-                // Se il nome è stato lasciato vuoto nel form, usa l'indirizzo formattato da Google
+                // If the name field was left blank in the form, fall back to Google's formatted address
                 String finalName = result.formattedAddress;
                 Double latitude = result.geometry.location.lat;
                 Double longitude = result.geometry.location.lng;
 
                 LatLng newLocation = new LatLng(latitude, longitude, finalName);
                 latLngService.addLocation(newLocation);
-                redirectAttributes.addAttribute("success", "Località '" + finalName + "' aggiunta con successo!");
+                redirectAttributes.addAttribute("success", "Location '" + finalName + "' added successfully!");
             } else {
-                redirectAttributes.addAttribute("error", "Indirizzo non trovato: " + address);
+                redirectAttributes.addAttribute("error", "Address not found: " + address);
             }
         } catch (ApiException e) {
-            redirectAttributes.addAttribute("error", "Errore API Google Maps: " + e.getMessage());
+            redirectAttributes.addAttribute("error", "Google Maps API Error: " + e.getMessage());
             e.printStackTrace();
         } catch (IOException e) {
-            redirectAttributes.addAttribute("error", "Errore di I/O durante la geocodifica: " + e.getMessage());
+            redirectAttributes.addAttribute("error", "I/O Error during geocoding: " + e.getMessage());
             e.printStackTrace();
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Ripristina l'interruzione
-            redirectAttributes.addAttribute("error", "Operazione interrotta durante la geocodifica.");
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            redirectAttributes.addAttribute("error", "Operation interrupted during geocoding.");
             e.printStackTrace();
         } catch (Exception e) {
-            redirectAttributes.addAttribute("error", "Errore generico durante l'aggiunta della località: " + e.getMessage());
+            redirectAttributes.addAttribute("error", "Generic error while adding the location: " + e.getMessage());
             e.printStackTrace();
         }
         return "redirect:/traffic-dashboard";
     }
 
 
-
     /**
-     * Gestisce la richiesta GET per la dashboard del traffico.
-     * Recupera tutti i dati di traffico e le località e li aggiunge al modello.
-     * @param model Il modello per passare i dati al template Thymeleaf.
-     * @return Il nome del template Thymeleaf da renderizzare.
+     * Handles the GET request for the traffic dashboard.
+     * Retrieves all traffic data and locations, adding them to the view model.
+     * @param model The model to pass data to the Thymeleaf template.
+     * @return The Thymeleaf template name to render.
      */
     @GetMapping("/traffic-dashboard")
     public String showDashboard(Model model) {
@@ -117,40 +108,40 @@ public class TrafficWebController {
 
         model.addAttribute("trafficDataList", allTrafficData);
         model.addAttribute("locations", allLocations);
-        model.addAttribute("newLocation", new LatLng()); // Per il form di aggiunta nuova località
-        model.addAttribute("dateTimeFormatter", DATE_TIME_FORMATTER); // Per formattare le date
-        return "traffic-dashboard"; // Nome del file HTML in src/main/resources/templates
+        model.addAttribute("newLocation", new LatLng()); // Backing object for the new location form
+        model.addAttribute("dateTimeFormatter", DATE_TIME_FORMATTER); // For date formatting
+        return "traffic-dashboard"; // HTML filename in src/main/resources/templates
     }
 
     /**
-     * Gestisce la richiesta POST per aggiungere una nuova località.
-     * Controlla se la località esiste già prima di salvarla.
-     * @param newLocation L'oggetto LatLng inviato dal form.
-     * @param redirectAttributes Attributi per messaggi di reindirizzamento.
-     * @return Reindirizzamento alla dashboard.
+     * Handles the POST request to add a new location.
+     * Checks if the location already exists before persisting it.
+     * @param newLocation The LatLng object submitted from the form.
+     * @param redirectAttributes Attributes for redirection messages.
+     * @return Redirection to the dashboard.
      */
     @PostMapping("/add-location")
     public String addLocation(LatLng newLocation, RedirectAttributes redirectAttributes) {
-        // Controlla se una località con la stessa lat/lng esiste già
+        // Verifies if a location with identical lat/lng already exists
         Optional<LatLng> existingLocation = latLngService.findByCordinate(newLocation.getLatitude(), newLocation.getLongitude());
 
         if (existingLocation.isPresent()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Località con la stessa latitudine e longitudine già esistente!");
+            redirectAttributes.addFlashAttribute("errorMessage", "A location with this latitude and longitude already exists!");
         } else {
-            // Se il nome non è stato fornito dal form, imposta un nome di default
+            // Adds a default name if omitted by the user
             latLngService.addLocation(newLocation);
-            redirectAttributes.addFlashAttribute("successMessage", "Località aggiunta con successo!");
+            redirectAttributes.addFlashAttribute("successMessage", "Location added successfully!");
         }
         return "redirect:/traffic-dashboard";
     }
 
     /**
-     * Gestisce la richiesta POST per controllare il traffico tra due località esistenti.
-     * Utilizza il servizio TrafficCollectionService per avviare la raccolta dati.
-     * @param originId ID della località di origine.
-     * @param destinationId ID della località di destinazione.
-     * @param redirectAttributes Attributi per messaggi di reindirizzamento.
-     * @return Reindirizzamento alla dashboard.
+     * Handles the POST request to check traffic between two existing locations.
+     * Leverages the TrafficCollectionService to initiate data collection.
+     * @param originId ID of the origin location.
+     * @param destinationId ID of the destination location.
+     * @param redirectAttributes Attributes for redirection messages.
+     * @return Redirection to the dashboard.
      */
     @PostMapping("/check-traffic")
     public String checkTraffic(
@@ -162,7 +153,7 @@ public class TrafficWebController {
         Optional<LatLng> destinationOpt = latLngService.findById(destinationId);
 
         if (originOpt.isEmpty() || destinationOpt.isEmpty()) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Origine o Destinazione non trovate!");
+            redirectAttributes.addFlashAttribute("errorMessage", "Origin or Destination not found!");
             return "redirect:/traffic-dashboard";
         }
 
@@ -170,80 +161,73 @@ public class TrafficWebController {
         LatLng destination = destinationOpt.get();
 
         try {
-            // Chiama il servizio per raccogliere e salvare i dati del traffico per queste specifiche rotte
-            // Nota: Se trafficCollectionService.collectTrafficDataScheduled() non è adatta,
-            // potresti dover aggiungere un nuovo metodo a TrafficCollectionService
-            // che accetti LatLng origin e LatLng destination.
+            // Calls the service to collect and persist traffic data for this specific route
             CompletableFuture<Void> future = trafficCollectionService.collectTrafficDataForRoute(origin, destination);
-            future.get(); // Aspetta il completamento dell'operazione asincrona
-            redirectAttributes.addFlashAttribute("successMessage", "Dati traffico raccolti e salvati con successo!");
+            future.get(); // Await asynchronous operation completion
+            redirectAttributes.addFlashAttribute("successMessage", "Traffic data collected and saved successfully!");
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Ripristina lo stato di interruzione
-            logger.error("Errore di interruzione durante la raccolta del traffico: {}", e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("errorMessage", "Operazione interrotta durante la raccolta del traffico: " + e.getMessage());
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            logger.error("Interruption error during traffic collection: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Operation interrupted during traffic collection: " + e.getMessage());
         } catch (ExecutionException e) {
-            logger.error("Errore durante l'esecuzione asincrona della raccolta del traffico: {}", e.getCause() != null ? e.getCause().getMessage() : e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("errorMessage", "Errore durante la raccolta del traffico: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            logger.error("Error during asynchronous traffic collection execution: {}", e.getCause() != null ? e.getCause().getMessage() : e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Error during traffic collection: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
         } catch (Exception e) {
-            logger.error("Errore generico durante la raccolta del traffico: {}", e.getMessage(), e);
-            redirectAttributes.addFlashAttribute("errorMessage", "Errore generico durante la raccolta del traffico: " + e.getMessage());
+            logger.error("Generic error during traffic collection: {}", e.getMessage(), e);
+            redirectAttributes.addFlashAttribute("errorMessage", "Generic error during traffic collection: " + e.getMessage());
         }
 
         return "redirect:/traffic-dashboard";
     }
 
     /**
-     * Gestisce la richiesta POST per eliminare un dato di traffico.
-     * @param id ID del dato traffico da eliminare.
-     * @param redirectAttributes Attributi per messaggi di reindirizzamento.
-     * @return Reindirizzamento alla dashboard.
+     * Handles the POST request to delete a traffic data entry.
+     * @param id ID of the traffic data to delete.
+     * @param redirectAttributes Attributes for redirection messages.
+     * @return Redirection to the dashboard.
      */
     @PostMapping("/delete-traffic-data")
     public String deleteTrafficData(@RequestParam("id") Long id, RedirectAttributes redirectAttributes) {
         try {
             trafficCollectionService.delete(id);
-            redirectAttributes.addFlashAttribute("successMessage", "Dato traffico eliminato con successo!");
+            redirectAttributes.addFlashAttribute("successMessage", "Traffic data deleted successfully!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Errore nell'eliminazione del dato traffico: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error deleting traffic data: " + e.getMessage());
         }
         return "redirect:/traffic-dashboard";
     }
 
     /**
-     * Gestisce la richiesta POST per eliminare una località.
-     * Controlla se la località è utilizzata in dati di traffico esistenti prima di eliminarla.
-     * @param id ID della località da eliminare.
-     * @param redirectAttributes Attributi per messaggi di reindirizzamento.
-     * @return Reindirizzamento alla dashboard.
+     * Handles the POST request to delete a location.
+     * Checks if the location is associated with any existing traffic data prior to deletion.
+     * @param id ID of the location to delete.
+     * @param redirectAttributes Attributes for redirection messages.
+     * @return Redirection to the dashboard.
      */
     @PostMapping("/delete-location")
     public String deleteLocation(@RequestParam("id") Long id, RedirectAttributes redirectAttributes) {
         try {
-            // Prima di eliminare una località, controlla se è usata in TrafficData
-            // Questo è un controllo semplice, potresti voler gestire casi più complessi
-            // ad esempio, settare a NULL le relazioni in TrafficData o eliminare i TrafficData correlati
-            //findByOriginIdOrDestinationId
-            List<TrafficData> relatedTrafficData = trafficCollectionService.getTrafficDataByOriginAndDestination(id, id); // ?????
+            // Check for dependent TrafficData before removing the location
+            // As an alternative, cascade constraints could be handled by setting foreign keys to NULL
+            List<TrafficData> relatedTrafficData = trafficCollectionService.getTrafficDataByOriginAndDestination(id, id); 
             if (!relatedTrafficData.isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Impossibile eliminare la località: è usata in dati di traffico esistenti.");
+                redirectAttributes.addFlashAttribute("errorMessage", "Unable to delete location: It is bound to existing traffic data.");
             } else {
                 latLngService.deleteLocation(id);
-                redirectAttributes.addFlashAttribute("successMessage", "Località eliminata con successo!");
+                redirectAttributes.addFlashAttribute("successMessage", "Location deleted successfully!");
             }
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Errore nell'eliminazione della località: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Error deleting location: " + e.getMessage());
         }
         return "redirect:/traffic-dashboard";
     }
 
-    // Classe interna per mappare la richiesta JSON (se non vuoi creare un file separato)
+    // Inner class mapping the JSON payload
     static class LatLngRequest {
         private Double latitude;
         private Double longitude;
 
-        //private static final Logger logger = LoggerFactory.getLogger(TrafficCollectionService.class);
-
-        // Getters and setters (Lombok @Data would generate these automatically if used)
+        // Getters and setters 
         public Double getLatitude() { return latitude; }
         public void setLatitude(Double latitude) { this.latitude = latitude; }
         public Double getLongitude() { return longitude; }
@@ -251,51 +235,51 @@ public class TrafficWebController {
     }
 
     /**
-     * Gestisce la richiesta POST da una chiamata AJAX per ottenere il traffico per un punto specifico.
-     * Utilizza il servizio TrafficCollectionService per trovare/creare la località e raccogliere i dati.
-     * @param request L'oggetto LatLngRequest contenente latitudine e longitudine.
-     * @return Una stringa JSON che indica successo o fallimento.
+     * Handles the POST request from AJAX calls to get traffic for a specific point.
+     * Uses TrafficCollectionService to find/create the location and collect data.
+     * @param request The LatLngRequest payload containing latitude and longitude.
+     * @return A JSON string indicating success or failure.
      */
     @PostMapping("/get-traffic-for-point")
-    @ResponseBody // ritorna direttamente il corpo della risposta (JSON)
+    @ResponseBody // Maps the return value straight to the HTTP response body (JSON)
     public String getTrafficForPoint(@RequestBody LatLngRequest request) {
         try {
-            // Trova o crea la LatLng per il punto cliccato
-            // stesso punto come origine e destinazione per avere dati "sul" punto
+            // Find or create the LatLng for the clicked point
+            // By using the same point as origin and destination, we get localized point data
             LatLng clickedLocation = latLngService.findOrCreateLatLng(request.getLatitude(), request.getLongitude());
 
-            // traffico con la stessa località come origine e destinazione
-            // qiondi -> traffico "attorno" o "in" quel punto
+            // Traffic query using the same location for both ends
+            // yielding localized traffic insights around that node
             CompletableFuture<Void> future = trafficCollectionService.collectTrafficDataForRoute(clickedLocation, clickedLocation);
-            future.get(); // Aspetta che la richiesta asincrona sia completata
+            future.get(); // Await asynchronous request completion
 
-            return "{\"success\": true, \"message\": \"Dati traffico raccolti per " + clickedLocation.getName() + ".\"}";
+            return "{\"success\": true, \"message\": \"Traffic data collected for " + clickedLocation.getName() + ".\"}";
         } catch (InterruptedException | ExecutionException e) {
-            Thread.currentThread().interrupt(); // Ripristina lo stato di interruzione
-            logger.error("       ****Errore durante la raccolta del traffico per punto: {}", e.getMessage(), e);
-            return "{\"success\": false, \"message\": \"Errore durante la raccolta del traffico: " + e.getMessage() + "\"}";
+            Thread.currentThread().interrupt(); // Restore interrupted state
+            logger.error("       ****Error collecting traffic for the specific point: {}", e.getMessage(), e);
+            return "{\"success\": false, \"message\": \"Error collecting traffic: " + e.getMessage() + "\"}";
         } catch (Exception e) {
-            logger.error("       ****Errore generico durante la raccolta del traffico per punto: {}", e.getMessage(), e);
-            return "{\"success\": false, \"message\": \"Errore generico: " + e.getMessage() + "\"}";
+            logger.error("       ****Generic error collecting traffic for the specific point: {}", e.getMessage(), e);
+            return "{\"success\": false, \"message\": \"Generic error: " + e.getMessage() + "\"}";
         }
     }
 
     /**
-     * Gestisce la richiesta POST per rinominare una località esistente.
-     * Reindirizza alla dashboard con un messaggio di successo o errore.
+     * Handles the POST request to rename an existing location.
+     * Redirects to the dashboard with a success or error message.
      */
-    @PostMapping("/rename-location") // Questa è l'annotazione chiave!
+    @PostMapping("/rename-location") 
     public String renameLocation(@RequestParam Long id, @RequestParam String newName, RedirectAttributes redirectAttributes) {
         try {
-            // Chiama il metodo renameLocation dal tuo LocationService
+            // Delegates to the LatLngService rename method
             latLngService.renameLocation(id, newName);
-            redirectAttributes.addFlashAttribute("successMessage", "Località rinominata con successo!");
+            redirectAttributes.addFlashAttribute("successMessage", "Location renamed successfully!");
         } catch (Exception e) {
-            // Gestione generica dell'errore (puoi renderla più specifica)
-            redirectAttributes.addFlashAttribute("errorMessage", "Errore durante la rinomina della località: " + e.getMessage());
+            // Generic error handling
+            redirectAttributes.addFlashAttribute("errorMessage", "Error renaming location: " + e.getMessage());
         }
-        // Reindirizza sempre alla dashboard dopo l'operazione
-        return "redirect:/traffic-dashboard"; // Assicurati che questo sia l'URL corretto per la tua dashboard
+        // Consistently redirects to the dashboard after the operation
+        return "redirect:/traffic-dashboard";
     }
 
 }

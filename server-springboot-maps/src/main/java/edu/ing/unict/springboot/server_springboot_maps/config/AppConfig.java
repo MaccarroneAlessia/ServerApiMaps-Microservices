@@ -12,17 +12,17 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
 
 @Configuration
-@ConfigurationProperties(prefix = "app") // Prefisso per le proprietà custom
-@Data // Da Lombok, genera getter/setter/toString/equals/hashCode
+@ConfigurationProperties(prefix = "app") // Prefix for custom properties
+@Data // From Lombok, generates getters/setters/toString/equals/hashCode
 public class AppConfig {
     @Value("${app.google.directions.api.url:https://maps.googleapis.com/maps/api/directions/json}")
     private String googleDirectionsApiUrl;
-    //private String trafficRouteOrigin; // es. "40.7128,-74.0060" (New York)
-    //private String trafficRouteDestination; // es. "34.0522,-118.2437" (Los Angeles)
+    //private String trafficRouteOrigin; // e.g., "40.7128,-74.0060" (New York)
+    //private String trafficRouteDestination; // e.g., "34.0522,-118.2437" (Los Angeles)
     //private Integer apiTimeoutSeconds= 10; // TEMPORARY: Initialize directly for testing;
-    // Deve essere Integer (oggetto), non int (primitivo)
-                                     // perché se non trovato, un Integer può essere null,
-                                     // mentre un int causerebbe un'eccezione di mappatura.
+    // Must be Integer (object wrapper), not int (primitive)
+                                     // because if missing, an Integer can be null,
+                                     // whereas an int would cause a mapping exception.
 
 
     @Value("${app.traffic.collection.fixedDelayMs:600000}")
@@ -55,7 +55,7 @@ public class AppConfig {
         this.googleDirectionsApiUrl = directionsApiUrl;
     }
 
-    // Executor personalizzato per @Async e CompletableFuture
+    // Custom executor for @Async and CompletableFuture
     @Bean(name = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -71,6 +71,6 @@ public class AppConfig {
 }
 
 /*
- * google.directions.api.url, traffic.route.origin, traffic.route.destination e api.timeout.seconds sotto il prefisso app -> per raggrupparli
+ * google.directions.api.url, traffic.route.origin, traffic.route.destination and api.timeout.seconds under the app prefix -> to group them
  * -> application.properties 
  */

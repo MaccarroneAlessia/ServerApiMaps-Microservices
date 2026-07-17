@@ -1,8 +1,8 @@
 package edu.ing.unict.springboot.server_springboot_maps.model;
-// Entità JPA Principale *
+// Main JPA Entity *
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull; // validazioni a livello di bean
+import jakarta.validation.constraints.NotNull; // Bean-level validations
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,24 +22,24 @@ public class TrafficData {
     @NotNull
     private LocalDateTime timestamp;
 
-    @ManyToOne // Relazione One-to-Many (1 a MOLTI) da LatLng
-    // Molti traffic_data possono avere lo stesso LatLng -> posto considerato più volte
-    @JoinColumn(name = "origin_location_id", nullable = false) // Colonna FK per l'origine, NOT NULL
-    @NotNull // Potresti volere questa validazione a livello di bean per assicurarti che il LatLng non sia null prima di salvare
+    @ManyToOne // One-to-Many relationship from LatLng
+    // Many traffic_data entries can map to the same LatLng -> location polled multiple times
+    @JoinColumn(name = "origin_location_id", nullable = false) // FK column for origin, NOT NULL
+    @NotNull // Bean-level validation to ensure LatLng is not null before saving
     private LatLng origin;
 
-    @ManyToOne // Relazione One-to-Many
-    @JoinColumn(name = "destination_location_id", nullable = false) // Colonna FK per la destinazione, NOT NULL
-    @NotNull // Potresti volere questa validazione a livello di bean
+    @ManyToOne // One-to-Many relationship
+    @JoinColumn(name = "destination_location_id", nullable = false) // FK column for destination, NOT NULL
+    @NotNull // Bean-level validation
     private LatLng destination;
 
 
-    private String mode; // ad esempio "driving" se alla guida -> può essere null
+    private String mode; // e.g., "driving" if operating a vehicle -> can be null
 
     @Embedded
     private RouteDetails routeDetails; // summary, duration, duration_in_traffic
 
-    // Costruttore senza ID per la creazione di nuovi oggetti
+    // Constructor without ID for creating new entities
     public TrafficData(LocalDateTime timestamp, LatLng originLatLng, LatLng destinationLatLng, String mode, RouteDetails routeDetails) {
         this.timestamp = timestamp;
         this.origin = originLatLng;

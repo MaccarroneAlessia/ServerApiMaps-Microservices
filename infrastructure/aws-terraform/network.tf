@@ -1,12 +1,12 @@
 # AWS NETWORK INFRASTRUCTURE (VPC)
 
-# definisce l'isolamento di rete (fondamentale per la sicurezza cloud)
-# Crea una Virtual Private Cloud (VPC) con:
-# - Subnet Pubbliche: Per le risorse esposte a internet (es. ALB)
-# - Subnet Private: Per le risorse isolate (es. RDS Database)
-# - Internet Gateway & Route Tables: Per permettere la navigazione in uscita.
+# Defines network isolation (crucial for cloud security)
+# Creates a Virtual Private Cloud (VPC) containing:
+# - Public Subnets: For resources exposed to the internet (e.g., ALB)
+# - Private Subnets: For isolated resources (e.g., RDS Database)
+# - Internet Gateway & Route Tables: To allow outbound traffic.
 
-# VPC Principale
+# Main VPC
 resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
@@ -17,7 +17,7 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Internet Gateway per consentire l'accesso a Internet
+# Internet Gateway for internet access
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
@@ -26,9 +26,9 @@ resource "aws_internet_gateway" "main" {
   }
 }
 
-# Subnet Pubbliche (Per ALB e per ECS Fargate)
-# Nota: mettiamo ECS in subnet pubblica per evitarti i costi elevati del NAT Gateway (circa 30$/mese),
-#       mantenendo comunque la sicurezza tramite i Security Group.
+# Public Subnets (For ALB and ECS Fargate)
+# Note: ECS is placed in a public subnet to avoid expensive NAT Gateway costs (around $30/month),
+# while maintaining security through Security Groups.
 resource "aws_subnet" "public_1" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
@@ -55,7 +55,7 @@ resource "aws_subnet" "public_2" {
   }
 }
 
-# Subnet Private (Per RDS)
+# Private Subnets (For RDS)
 resource "aws_subnet" "private_1" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.3.0/24"
@@ -80,7 +80,7 @@ resource "aws_subnet" "private_2" {
   }
 }
 
-# Tabella di routing per le subnet pubbliche
+# Routing table for public subnets
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 

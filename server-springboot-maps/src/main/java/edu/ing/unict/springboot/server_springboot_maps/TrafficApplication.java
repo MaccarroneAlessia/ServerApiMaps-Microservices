@@ -7,22 +7,22 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.client.RestTemplate;
 
-import org.springframework.scheduling.annotation.EnableScheduling; // Abilita la schedulazione
-import org.springframework.http.client.SimpleClientHttpRequestFactory; // Per configurare timeout RestTemplate
+import org.springframework.scheduling.annotation.EnableScheduling; // Enables scheduling
+import org.springframework.http.client.SimpleClientHttpRequestFactory; // Configures RestTemplate timeouts
 
-@SpringBootApplication // annotazione principale
-@EnableScheduling // Abilita la scansione dei metodi annotati con @Scheduled -> funzionalità di schedulazione di Spring
-// Abilita la schedulazione per il TrafficCollectionService
+@SpringBootApplication // Main application annotation
+@EnableScheduling // Enables scanning for @Scheduled annotated methods -> Spring scheduling functionality
+// Enables scheduling for the TrafficCollectionService
 public class TrafficApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(TrafficApplication.class, args);
 	}
 
-	// RestTemplate Bean: Inietta AppConfig correttamente come parametro
-    // Configura RestTemplate con i timeout definiti in AppConfig
+	// RestTemplate Bean: Correctly injects AppConfig as a parameter
+    // Configures RestTemplate with the timeouts defined in AppConfig
 	@Bean
-    public RestTemplate restTemplate(AppConfig appConfig) { // AppConfig iniettato qui
+    public RestTemplate restTemplate(AppConfig appConfig) { // AppConfig injected here
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(appConfig.getApiTimeoutSeconds() * 1000);
         factory.setReadTimeout(appConfig.getApiTimeoutSeconds() * 1000);
@@ -30,10 +30,10 @@ public class TrafficApplication {
     }
 
 	// ObjectMapper Bean:
-    // Bean per la serializzazione/deserializzazione JSON
+    // Bean for JSON serialization/deserialization
     @Bean
     public ObjectMapper objectMapper() {
-        return new ObjectMapper().findAndRegisterModules(); // per LocalDateTime
+        return new ObjectMapper().findAndRegisterModules(); // Registers modules like LocalDateTime
     }
 
 }

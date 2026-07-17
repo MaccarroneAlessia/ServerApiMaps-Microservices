@@ -10,41 +10,41 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-//Embeddable per latitudine e longitudine
+// Embeddable for latitude and longitude
 //@Embeddable
-@Entity // entità JPA
-@Table(name = "locations") // tabella per le latitudini/longitudini -> posti 
+@Entity // JPA entity
+@Table(name = "locations") // Table mapping latitudes/longitudes -> places 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class LatLng {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Aggiungiamo un ID per la tabella separata
+    private Long id; // Adds an ID for the separate table
 
-    @Column(nullable = false) // -> @Column per specificare NOT NULL a livello di database
+    @Column(nullable = false) // @Column specifying NOT NULL at the database level
     private Double latitude;
 
     @Column(nullable = false) 
     private Double longitude;
 
-    private String name; // nome leggibile
+    private String name; // Human-readable name
 
-    // Costruttore per creare LatLng senza ID
+    // Constructor to instantiate LatLng without an ID
     /*public LatLng(Double latitude, Double longitude, String name) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.name = name;
     }*/
 
-    //private String adress;
+    //private String address;
 
     public LatLng(Double latitude, Double longitude, String name) {
-        this(null, latitude, longitude, name); // costruttore senza indirizzo 
+        this(null, latitude, longitude, name); // Constructor without address 
     }
 
     /*
-    public LatLng(Double latitude, Double longitude, String name, String adress) {
-        this(null, latitude, longitude, name,adress); // costruttore full senza id
+    public LatLng(Double latitude, Double longitude, String name, String address) {
+        this(null, latitude, longitude, name, address); // Full constructor without id
     }*/
 }

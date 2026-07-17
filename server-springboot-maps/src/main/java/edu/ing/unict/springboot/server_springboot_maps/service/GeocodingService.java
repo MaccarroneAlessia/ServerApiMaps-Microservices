@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 public class GeocodingService {
     private static final Logger logger = LoggerFactory.getLogger(GeocodingService.class);
 
-    //@Value("${google.maps.api.key}")
     private String googleMapsApiKey;
 
     @Autowired
@@ -43,30 +42,29 @@ public class GeocodingService {
 
     @PostConstruct
     public void init() {
-        // Recupera la chiave API tramite ApiKeyManager
+        // Retrieve the API key via ApiKeyManager
         this.googleMapsApiKey = apiKeyManager.getGoogleApiKey();
 
-        // Inizializza il contesto dell'API di Google Maps solo una volta
-        // Se la chiave API non è valida, il contesto sarà nullo
-
+        // Initialize the Google Maps API context once
+        // If the API key is invalid, the context will remain null
         if (googleMapsApiKey != null && !googleMapsApiKey.isEmpty()) {
             context = new GeoApiContext.Builder()
                     .apiKey(googleMapsApiKey)
                     .build();
         } else {
-            System.err.println("        *****AVVISO: Chiave API di Google Maps non configurata! La geocodifica non funzionerà...");
+            System.err.println("        *****WARNING: Google Maps API key not configured! Geocoding will not work...");
         }
     }
 
     public GeocodingResult geocodeAddress(String address) throws IOException, InterruptedException, ApiException {
         if (context == null) {
-            throw new IllegalStateException("Google Maps API context non inizializzato. Controlla la tua chiave API.");
+            throw new IllegalStateException("Google Maps API context not initialized. Please check your API key.");
         }
         GeocodingResult[] results = GeocodingApi.newRequest(context).address(address).await();
         if (results != null && results.length > 0) {
-            return results[0]; // Restituisce il primo risultato più rilevante
+            return results[0]; // Returns the first and most relevant result
         }
-        return null; // Nessun risultato trovato
+        return null; // No results found
     }
 
     /**
@@ -107,12 +105,11 @@ public class GeocodingService {
         return null; // Return null if address not found or an error occurs
     }
 
-    // per chiudere il contesto quando l'applicazione si spegne
-    // anche se per Spring Boot perché il contesto è gestito come un bean
+    // Gracefully shutdown the context when the application stops
+    // Supported by Spring Boot as the context is managed as a bean
     public void shutdown() {
         if (context != null) {
             context.shutdown();
         }
     }
-    
 }

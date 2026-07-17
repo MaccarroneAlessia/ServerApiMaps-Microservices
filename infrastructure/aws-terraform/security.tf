@@ -1,39 +1,39 @@
-# Security Group per i Nodi K3s (EC2)
+# Security Group for K3s Nodes (EC2)
 resource "aws_security_group" "k3s_nodes" {
   name        = "maps-k3s-sg"
-  description = "Security Group per i nodi EC2 K3s"
+  description = "Security Group for K3s EC2 nodes"
   vpc_id      = aws_vpc.main.id
 
-  # Accesso SSH per Ansible
+  # SSH Access for Ansible
   ingress {
-    description = "SSH da Internet"
+    description = "SSH from Internet"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Accesso API Kubernetes (K3s) da Internet per permettere al Worker di unirsi
+  # Kubernetes API (K3s) Access from Internet to allow Worker to join
   ingress {
-    description = "K3s API da Internet"
+    description = "K3s API from Internet"
     from_port   = 6443
     to_port     = 6443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Traffico interno al VPC (comunicazione K3s tra master e worker, es. per Flannel e API K8s su 6443)
+  # Internal VPC traffic (K3s communication between master and worker, e.g. for Flannel and K8s API on 6443)
   ingress {
-    description = "Traffico interno al VPC"
+    description = "Internal VPC traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = [aws_vpc.main.cidr_block]
   }
 
-  # Accesso all'app da NodePort tramite ALB
+  # App Access from NodePort via ALB
   ingress {
-    description = "Traffico dal ALB verso NodePort 30080"
+    description = "Traffic from ALB to NodePort 30080"
     from_port   = 30080
     to_port     = 30080
     protocol    = "tcp"
@@ -41,7 +41,7 @@ resource "aws_security_group" "k3s_nodes" {
   }
 
   egress {
-    description = "Uscita verso Internet libera"
+    description = "Free outbound Internet access"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -49,14 +49,14 @@ resource "aws_security_group" "k3s_nodes" {
   }
 }
 
-# Security Group per l'Application Load Balancer
+# Security Group for the Application Load Balancer
 resource "aws_security_group" "alb" {
   name        = "maps-alb-sg"
-  description = "Consenti traffico HTTP in ingresso al ALB"
+  description = "Allow inbound HTTP traffic to the ALB"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "HTTP da Internet"
+    description = "HTTP from Internet"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -64,7 +64,7 @@ resource "aws_security_group" "alb" {
   }
 
   egress {
-    description = "Traffico in uscita dal ALB"
+    description = "Outbound traffic from ALB"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -72,14 +72,14 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# Security Group per RDS MySQL
+# Security Group for RDS MySQL
 resource "aws_security_group" "rds" {
   name        = "maps-rds-sg"
-  description = "Consenti traffico in ingresso verso MySQL dai nodi K3s"
+  description = "Allow inbound traffic to MySQL from K3s nodes"
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    description = "Traffico da EC2 su porta 3306"
+    description = "EC2 traffic on port 3306"
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"

@@ -1,49 +1,49 @@
 # Backend Application (Spring Boot)
 
 
-Questa cartella contiene il cuore logico del progetto: un'applicazione a microservizi sviluppata in **Java 17+** e basata sul framework **Spring Boot**. L'applicazione gestisce le operazioni CRUD, l'analisi del traffico e si interfaccia con le API di Google Maps per servizi di geocoding.
+This folder contains the logical core of the project: a microservices application developed in **Java 17+** and based on the **Spring Boot** framework. The application handles CRUD operations, traffic analysis, and interfaces with Google Maps APIs for geocoding services.
 
 
-Rappresenta il livello applicativo puro del sistema (Software Development). Tutto ciò che riguarda l'infrastruttura, il provisioning hardware o l'orchestrazione cloud è mantenuto rigorosamente all'esterno di questa cartella. 
+It represents the pure application layer of the system (Software Development). Everything related to infrastructure, hardware provisioning, or cloud orchestration is kept strictly outside of this folder. 
 
-## 📂 Struttura
-- **`src/main/java/`**: Contiene l'intero codice sorgente strutturato secondo il pattern architetturale MVC / 3-Tier (Controller, Service, Repository).
-- **`pom.xml`**: Il file di configurazione di **Maven**, che gestisce le dipendenze del progetto (Spring Data JPA, Hibernate, Resilience4j, MySQL Driver, ecc.).
-- **`Dockerfile`**: Il file che definisce come compilare e impacchettare l'applicazione in un contenitore Docker in due fasi (Multi-stage build).
-- **`application.yml`** (o `application.properties`): Contiene le configurazioni di Spring Boot (variabili lette a runtime tramite env vars, come URL del DB, credenziali e porte).
+## 📂 Structure
+- **`src/main/java/`**: Contains the entire source code, structured according to the MVC / 3-Tier architectural pattern (Controller, Service, Repository).
+- **`pom.xml`**: The **Maven** configuration file, which manages project dependencies (Spring Data JPA, Hibernate, Resilience4j, MySQL Driver, etc.).
+- **`Dockerfile`**: The file defining how to compile and package the application into a Docker container in two phases (Multi-stage build).
+- **`application.yml`** (or `application.properties`): Contains Spring Boot configurations (variables read at runtime via env vars, such as DB URL, credentials, and ports).
 
-## 💡 Architettura e Design
-1. **Architettura 3-Tier / MVC / 3-Layer**: Il codice è suddiviso in Presentation Layer (API REST), Business Logic (Servizi) e Data Access Layer (JPA).
-2. **Resilienza (Resilience4j)**: La comunicazione con i server di Google Maps è intrinsecamente instabile o soggetta a limiti di rate. L'implementazione del pattern **Circuit Breaker** (con eventuali retry/fallback) fa in modo che le richieste in fallimento non saturino i thread di Tomcat provocando il blocco totale del servizio.
-3. **Ottimizzazione Docker (Multi-stage & Distroless)**: 
-   - La build Maven avviene all'interno di un primo container (builder), evitando di dover installare JDK o Maven sulla macchina host.
-   - Il runtime avviene su un'immagine *distroless* (es. `gcr.io/distroless/java17`), priva di shell, package manager o utility di sistema, riducendo drasticamente la superficie di attacco. L'utente che esegue l'app è limitato (`springuser`).
-4. **Log come stream di eventi (12-Factor App)**: I log dell'applicazione sono diretti su `STDOUT`/`STDERR`, permettendo a Kubernetes o a Docker di raccoglierli e centralizzarli in modo nativo.
+## 💡 Architecture & Design
+1. **3-Tier / MVC / 3-Layer Architecture**: The code is divided into the Presentation Layer (REST APIs), Business Logic (Services), and Data Access Layer (JPA).
+2. **Resilience (Resilience4j)**: Communication with Google Maps servers is intrinsically unstable or subject to rate limits. Implementing the **Circuit Breaker** pattern (with retry/fallback mechanisms) ensures that failing requests do not saturate Tomcat threads, preventing a total service halt.
+3. **Docker Optimization (Multi-stage & Distroless)**: 
+   - The Maven build occurs within an initial container (builder), avoiding the need to install the JDK or Maven on the host machine.
+   - The runtime executes on a *distroless* image (e.g., `gcr.io/distroless/java17`), stripped of shells, package managers, or system utilities, drastically reducing the attack surface. The user running the app is restricted (`springuser`).
+4. **Logs as event streams (12-Factor App)**: Application logs are directed to `STDOUT`/`STDERR`, allowing Kubernetes or Docker to collect and centralize them natively.
 
-## 🚀 Comandi
+## 🚀 Commands
 
-### Esecuzione e Test Locali (senza Docker/K8s)
-Per testare il codice rapidamente durante lo sviluppo:
+### Local Execution and Testing (without Docker/K8s)
+To quickly test code during development:
 
 ```bash
-# Entra nella directory del backend
+# Enter the backend directory
 cd server-springboot-maps
 
-# 1. Compilare il progetto (eseguendo i test unitari)
+# 1. Compile the project (running unit tests)
 mvn clean install
 
-# 2. Avviare l'applicazione Spring Boot localmente
-# NOTA: richiederà un DB MySQL in esecuzione e le chiavi Google settate nell'ambiente
+# 2. Start the Spring Boot application locally
+# NOTE: will require a running MySQL DB and Google keys set in the environment
 mvn spring-boot:run
 ```
 
-### Build dell'Immagine Docker
-Per compilare l'immagine Docker in locale senza lanciare l'intera automazione K8s:
+### Docker Image Build
+To compile the Docker image locally without launching the entire K8s automation:
 ```bash
 docker build -t maps-app:latest .
 ```
 
-### Esecuzione Docker Standalone
+### Standalone Docker Execution
 ```bash
 docker run -p 8080:8080 --env-file ../.env maps-app:latest
 ```

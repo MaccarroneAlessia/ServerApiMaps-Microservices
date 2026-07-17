@@ -9,7 +9,7 @@ terraform {
 
 provider "multipass" {}
 
-# Creazione del nodo Master per il cluster K3s
+# Create Master node for the K3s cluster
 resource "multipass_instance" "master" {
   name   = "k3s-master"
   cpus   = 2
@@ -18,7 +18,7 @@ resource "multipass_instance" "master" {
   image  = "jammy" # Ubuntu 22.04 LTS
 }
 
-# Creazione del nodo Worker per il cluster K3s
+# Create Worker node for the K3s cluster
 resource "multipass_instance" "worker" {
   name   = "k3s-worker"
   cpus   = 2
@@ -27,7 +27,7 @@ resource "multipass_instance" "worker" {
   image  = "jammy"
 }
 
-# Genera l'inventory per Ansible automaticamente estraendo gli IP
+# Generate Ansible inventory automatically by extracting IPs
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/../ansible/inventory.tmpl", {
     master_ip = multipass_instance.master.ipv4

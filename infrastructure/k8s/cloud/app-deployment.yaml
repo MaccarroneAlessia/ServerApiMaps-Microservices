@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: maps-app
 spec:
-  replicas: 1 # Ridotto a 1 per evitare di saturare la RAM sulle micro-istanze
+  replicas: 1 # Reduced to 1 to avoid saturating RAM on micro instances
   selector:
     matchLabels:
       app: maps-app
@@ -16,7 +16,7 @@ spec:
         - name: ecr-registry-secret
       containers:
       - name: maps-app
-        image: IMAGE_PLACEHOLDER # Sarà rimpiazzato dalla pipeline Kustomize / sed
+        image: IMAGE_PLACEHOLDER # Will be replaced by Kustomize / sed pipeline
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -31,7 +31,7 @@ spec:
               name: maps-app-cloud-config
               key: SPRING_DATASOURCE_URL
         - name: SPRING_DATASOURCE_USERNAME
-          value: "ale" # L'utente RDS definito
+          value: "ale" # The defined RDS user
         - name: SPRING_DATASOURCE_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -48,7 +48,7 @@ kind: Service
 metadata:
   name: maps-app-service
 spec:
-  type: NodePort # L'ALB fa proxy verso le istanze EC2 su questa porta
+  type: NodePort # ALB proxies to EC2 instances on this port
   ports:
   - port: 8080
     targetPort: 8080

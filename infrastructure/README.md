@@ -1,29 +1,29 @@
 # Infrastructure & DevOps Orchestration
 
-Questa directory funge da radice per tutte le operazioni inerenti il DevOps, l'infrastruttura e l'automazione. Essa riunisce gli script di orchestrazione PowerShell e raggruppa gli strumenti per fare Infrastructure as Code (Terraform), Configuration Management (Ansible) e orchestrazione dei container (Kubernetes).
+This directory serves as the root for all DevOps, infrastructure, and automation operations. It consolidates PowerShell orchestration scripts and groups tools for Infrastructure as Code (Terraform), Configuration Management (Ansible), and Container Orchestration (Kubernetes).
 
-Lo scopo principale è mantenere una netta separazione tra il codice sorgente dell'applicazione e il codice necessario per definire dove e come questa applicazione deve essere eseguita. Piuttosto che far affidamento su configurazioni manuali (ClickOps) tramite Console AWS o decine di comandi sparsi, l'automazione è centralizzata in un processo end-to-end.
+The main goal is to maintain a strict separation between the application's source code and the code required to define where and how this application should run. Rather than relying on manual configurations (ClickOps) via the AWS Console or dozens of scattered commands, automation is centralized in an end-to-end process.
 
-## 📂 Struttura
+## 📂 Structure
 
-- **`deploy_k3s_windows.ps1`**: Il vero cuore dell'automazione. Questo script PowerShell agisce come un coordinatore universale:
-  1. **Provisioning AWS (Terraform)**: Istanzia la rete VPC, i nodi EC2 e il Database su AWS.
-  2. **Data Extraction**: Cattura l'IP pubblico dei nuovi nodi e genera dinamicamente l'inventario per Ansible.
-  3. **Configuration (Ansible)**: Installa il cluster Kubernetes (K3s) sulle macchine create.
-  4. **Deploy K8s**: Recupera i secret da AWS SSM, imposta il `kubeconfig` e lancia i manifesti K8s per dispiegare l'app Spring Boot.
-- Le sottocartelle (`aws-terraform`, `terraform`, `ansible`, `k8s`) racchiudono i file specifici per ogni tecnologia.
+- **`deploy_k3s_windows.ps1`**: The true heart of the automation. This PowerShell script acts as a universal coordinator:
+  1. **AWS Provisioning (Terraform)**: Provisions the VPC network, EC2 nodes, and Database on AWS.
+  2. **Data Extraction**: Captures the public IP of the new nodes and dynamically generates the Ansible inventory.
+  3. **Configuration (Ansible)**: Installs the Kubernetes cluster (K3s) on the provisioned machines.
+  4. **K8s Deployment**: Retrieves secrets from AWS SSM, sets up the `kubeconfig`, and launches the K8s manifests to deploy the Spring Boot app.
+- The subfolders (`aws-terraform`, `terraform`, `ansible`, `k8s`) contain the specific files for each technology.
 
-## 💡 Architettura e Design
+## 💡 Architecture & Design
 
-L'approccio scelto mira all'automazione totale "One-Click". Tramite un singolo comando, l'errore umano viene eliminato, abbattendo il tempo di deploy di un'infrastruttura cloud da ore a circa 5-10 minuti. Lo script PowerShell garantisce supporto su macchine di sviluppo Windows, ma i concetti impiegati sono universali e portabili su Bash.
+The chosen approach aims for total "One-Click" automation. Through a single command, human error is eliminated, reducing the deployment time of a cloud infrastructure from hours to approximately 5-10 minutes. The PowerShell script guarantees support on Windows development machines, but the underlying concepts are universal and portable to Bash.
 
-## 🚀 Comandi per il Deploy
+## 🚀 Deployment Commands
 
-Per portare in produzione l'intero progetto partendo da zero, è sufficiente lanciare lo script di orchestrazione:
+To bring the entire project to production starting from scratch, simply run the orchestration script:
 
 ```powershell
 cd infrastructure
 .\deploy_k3s_windows.ps1
 ```
 
-L'esecuzione mostrerà ogni passaggio a terminale, restituendo al termine l'URL pubblico del Load Balancer (ALB) da cui raggiungere il sito. Per eseguire i tool singolarmente, fare riferimento ai README delle rispettive sottocartelle.
+The execution will output each step to the terminal, returning the public URL of the Load Balancer (ALB) from which the site can be accessed upon completion. To run the tools individually, refer to the READMEs in their respective subfolders.

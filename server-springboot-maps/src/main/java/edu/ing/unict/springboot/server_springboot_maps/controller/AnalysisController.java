@@ -13,83 +13,82 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import jakarta.servlet.http.HttpServletRequest; // Import per HttpServletRequest
+import jakarta.servlet.http.HttpServletRequest; // Import for HttpServletRequest
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Controller
 public class AnalysisController {
-    // Inietta i servizi necessari
+    // Inject required services
     @Autowired
     private TrafficCollectionService trafficService;
     @Autowired
     private LatLngService latLngService;
 
-    // Formatter per le timestamp da usare nel grafico
+    // Formatter for timestamps to be used in the chart
     private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     /**
-     * Gestisce la richiesta GET per la pagina di analisi.
-     * Prepara il modello con i dati necessari per popolare i dropdown delle località
-     * @param model Il Model di Spring per aggiungere attributi alla vista
-     * @param request L'HttpServletRequest per ottenere l'URI corrente (per la navbar)
-     * @return Il nome del template Thymeleaf per la pagina di analisi.
+     * Handles the GET request for the analysis page.
+     * Prepares the model with the necessary data to populate the location dropdowns.
+     * @param model The Spring Model for adding view attributes.
+     * @param request The HttpServletRequest to fetch the current URI (for navbar highlighting).
+     * @return The Thymeleaf template name for the analysis page.
      */
     @GetMapping("/analysis")
     public String showAnalysisPage(Model model, HttpServletRequest request) {
-        // Aggiunge l'URI corrente al modello per la logica di evidenziazione nella navbar
+        // Binds the current URI to the model to handle active link highlighting in the navbar
         model.addAttribute("currentUri", request.getRequestURI());
 
-        // Recupera tutte le località e le aggiunge al modello.
-        // Questo è necessario per popolare i dropdown di origine e destinazione
-        // nella pagina di analisi, permettendo all'utente di selezionare il percorso.
+        // Retrieves all locations and appends them to the model.
+        // This is required to populate the origin and destination dropdowns
+        // on the analysis page, enabling users to pick a specific route.
         List<LatLng> locations = latLngService.getAllLocations();
         model.addAttribute("locations", locations);
 
-        // Restituisce il nome della vista Thymeleaf (es. analysis.html)
+        // Returns the Thymeleaf view name (e.g., analysis.html)
         return "analysis";
     }
 
     /**
-     * Fornisce i dati di traffico in formato JSON per la visualizzazione grafica
-     * Questo endpoint viene chiamato tramite AJAX dalla pagina di analisi quando
-     * l'utente seleziona un'origine e una destinazione.
-     * @param originId L'ID della località di origine selezionata dall'utente.
-     * @param destinationId L'ID della località di destinazione selezionata dall'utente.
-     * @return Una stringa JSON contenente i dati di traffico formattati per Chart.js.
+     * Supplies traffic data in JSON format for graphical rendering.
+     * This endpoint is invoked via AJAX from the analysis page whenever
+     * the user selects an origin and destination.
+     * @param originId The ID of the origin location selected by the user.
+     * @param destinationId The ID of the destination location selected by the user.
+     * @return A JSON string containing traffic data structured for Chart.js.
      */
     @GetMapping("/api/traffic-data-for-chart")
-    @ResponseBody // Indica a Spring di convertire il valore di ritorno direttamente in corpo HTTP (JSON)
+    @ResponseBody // Directs Spring to convert the return value straight into the HTTP body (JSON)
     public String getTrafficDataForChart(@RequestParam Long originId, @RequestParam Long destinationId) {
-        // Recupera i dati di traffico specifici per il percorso selezionato
-        // I dati sono ordinati per timestamp per una corretta visualizzazione nel grafico a linee.
+        // Retrieves traffic data bound to the selected route
+        // Data is chronologically ordered for accurate line chart plotting.
         List<TrafficData> data = trafficService.getTrafficDataByOriginAndDestination(originId, destinationId);
 
-        // ObjectMapper di Jackson per costruire il JSON
+        // Jackson ObjectMapper to construct the JSON payload
         ObjectMapper mapper = new ObjectMapper();
-        ArrayNode dataArray = mapper.createArrayNode(); // Array JSON per contenere gli oggetti dati
+        ArrayNode dataArray = mapper.createArrayNode(); // JSON array holding the data points
 
-        // Itera sui dati di traffico recuperati e li formatta per Chart.js
+        // Iterates through the fetched traffic data and formats it for Chart.js
         for (TrafficData td : data) {
-            ObjectNode node = mapper.createObjectNode(); // Un oggetto JSON per ogni punto dati
+            ObjectNode node = mapper.createObjectNode(); // Individual JSON object per data point
             
-            // Aggiunge la timestamp formattata per l'asse X del grafico
+            // Appends the formatted timestamp mapping to the chart's X-axis
             node.put("timestamp", td.getTimestamp().format(dateTimeFormatter));
             
-            // Aggiunge la durata normale (in minuti)
-            // td.getRouteDetails().getDuration() restituisce un oggetto DurationInfo
-            // DurationInfo.getValue() restituisca la durata in secondi.
+            // Appends standard duration (in minutes)
+            // td.getRouteDetails().getDuration() yields a DurationInfo object
+            // DurationInfo.getValue() resolves the duration in seconds.
             node.put("duration", td.getRouteDetails().getDuration().getValue() / 60.0);
             
-            // Aggiunge la durata nel traffico (in minuti)
-            // Assumi lo stesso per getDurationInTraffic()
+            // Appends traffic-adjusted duration (in minutes)
             node.put("durationInTraffic", td.getRouteDetails().getDurationInTraffic().getValue() / 60.0);
             
-            dataArray.add(node); // Aggiunge l'oggetto dati all'array
+            dataArray.add(node); // Injects the data node into the array
         }
 
-        // Restituisce l'array JSON come stringa
+        // Serializes the JSON array into a string
         return dataArray.toString();
     }
     

@@ -87,11 +87,24 @@ jobs:
         # Sostituisci il placeholder con l'immagine buildata
         sed -i "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" infrastructure/k8s/cloud/app-deployment.yaml
         
+        # Verifica se l'IP è definito e se il server è raggiungibile prima di tentare l'SSH
+        if [ -z "${{ secrets.K3S_MASTER_IP }}" ]; then
+          echo "⚠️ K3S_MASTER_IP non è configurato. Salto il deploy per evitare errori."
+          echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
+          exit 0
+        fi
+        
+        if ! ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes ubuntu@${{ secrets.K3S_MASTER_IP }} "echo 'SSH connection successful'"; then
+          echo "⚠️ Impossibile connettersi al Master K3s. Il server potrebbe essere spento o distrutto. Salto il deploy."
+          echo "SKIP_DEPLOY=true" >> $GITHUB_ENV
+          exit 0
+        fi
+
         # Crea la cartella destinazione se non esiste (necessario per macchine appena create)
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "mkdir -p ~/k8s-manifests"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "mkdir -p ~/k8s-manifests"
         
         # Copia i manifesti sul server master (usando /* per copiare il contenuto e non la cartella)
-        scp -o StrictHostKeyChecking=no -r infrastructure/k8s/cloud/* ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
+        scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -r infrastructure/k8s/cloud/* ubuntu@${{ secrets.K3S_MASTER_IP }}:~/k8s-manifests/
 
     - name: Esegui il deploy tramite kubectl via SSH
       if: env.SKIP_DEPLOY != 'true'

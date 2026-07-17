@@ -1,4 +1,4 @@
-# Subnet Group per RDS (richiede subnet in almeno 2 AZ)
+# Subnet Group for RDS (requires subnets in at least 2 AZs)
 resource "aws_db_subnet_group" "rds" {
   name       = "maps-rds-subnet-group"
   subnet_ids = [aws_subnet.private_1.id, aws_subnet.private_2.id]
@@ -14,16 +14,16 @@ resource "aws_db_instance" "mysql" {
   storage_type         = "gp2"
   engine               = "mysql"
   engine_version       = "8.0"
-  instance_class       = "db.t3.micro" # Idoneo per il Free Tier AWS
+  instance_class       = "db.t3.micro" # Eligible for AWS Free Tier
   db_name              = "maps_project_db"
   username             = "ale"
   
-  # Usa il valore in chiaro per terraform, ma non verrà stampato nei log grazie a variable "sensitive"
+  # Uses the plaintext value for terraform, but it won't be printed in logs thanks to the "sensitive" variable
   password             = var.db_password 
   
   parameter_group_name = "default.mysql8.0"
-  skip_final_snapshot  = true # Importante per ambienti di test per distruggerlo facilmente (evita errori su terraform destroy)
-  publicly_accessible  = false # Best practice di sicurezza: non raggiungibile da internet
+  skip_final_snapshot  = true # Important for test environments to easily destroy it (avoids terraform destroy errors)
+  publicly_accessible  = false # Security best practice: not reachable from the internet
 
   vpc_security_group_ids = [aws_security_group.rds.id]
   db_subnet_group_name   = aws_db_subnet_group.rds.name

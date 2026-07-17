@@ -1,27 +1,27 @@
 # Ansible Configuration Management
 
-**Ansible** è uno strumento di Configuration Management e automazione IT sviluppato da RedHat. Essendo strettamente *agent-less* (ovvero non richiedendo l'installazione di demoni sui nodi client), funziona connettendosi ai server remoti tramite SSH e applicando configurazioni dichiarative scritte in formato YAML, chiamate Playbooks.
+**Ansible** is an IT configuration management and automation tool developed by RedHat. Being strictly *agent-less* (meaning it does not require the installation of daemons on client nodes), it works by connecting to remote servers via SSH and applying declarative configurations written in YAML format, called Playbooks.
 
-Il compito di questa cartella si colloca subito dopo il provisioning infrastrutturale. Una volta che Terraform ha creato le "scatole vuote" (macchine EC2 su AWS o VM locali), Ansible interviene per "dar loro vita", installando e configurando automaticamente un cluster **Kubernetes (K3s)** senza alcun intervento manuale umano via SSH.
+The purpose of this folder comes immediately after infrastructural provisioning. Once Terraform has created the "empty boxes" (EC2 machines on AWS or local VMs), Ansible steps in to "bring them to life," automatically installing and configuring a **Kubernetes (K3s)** cluster without any manual human intervention via SSH.
 
-## 📂 Struttura
+## 📂 Structure
 
-- **`inventory.tmpl`**: Il template base impiegato per generare dinamicamente l'inventario. Poiché gli IP delle macchine vengono decisi in modo dinamico alla loro creazione, Terraform si preoccupa di iniettarli in questo file per istruire Ansible su quali nodi siano il Master e i Worker.
-- **`playbook-k3s.yml`**: Il file YAML principale che contiene la coreografia. Esegue lo scaricamento di K3s sul master, ne estrae il token di sicurezza e lo invia ai worker per registrarli nel medesimo cluster.
+- **`inventory.tmpl`**: The base template used to dynamically generate the inventory. Since machine IPs are determined dynamically upon creation, Terraform handles injecting them into this file to instruct Ansible on which nodes are the Master and the Workers.
+- **`playbook-k3s.yml`**: The main YAML file containing the choreography. It handles the download of K3s on the master, extracts its security token, and sends it to the workers to register them in the same cluster.
 
-## 💡 Architettura e Design
+## 💡 Architecture & Design
 
-1. **Idempotenza**: Ansible assicura che il playbook sia sicuro da rieseguire. Se eseguito su macchine già parzialmente configurate, modificherà soltanto ciò che non è nello stato desiderato, senza compromettere il lavoro preesistente.
-2. **K3s Automato**: Al posto di configurare manualmente Kubernetes o affidarsi a script bash incapsulati in EC2 User Data, la scelta di Ansible consente di estrarre in automatico il Token generato dinamicamente sul Master Node e inviarlo con precisione chirurgica ai Worker Node, assicurando l'unione al cluster.
+1. **Idempotency**: Ansible ensures that the playbook is safe to rerun. If run on partially configured machines, it will only modify what is not in the desired state, without compromising pre-existing work.
+2. **Automated K3s**: Instead of manually configuring Kubernetes or relying on bash scripts encapsulated in EC2 User Data, choosing Ansible allows for the automatic extraction of the dynamically generated Token on the Master Node and surgically sends it to the Worker Nodes, ensuring cluster joining.
 
-## 🚀 Comandi per il Deploy
+## 🚀 Deployment Commands
 
-Normalmente, l'esecuzione di Ansible è inglobata e triggerata in modo trasparente dallo script PowerShell principale. 
-Se tuttavia è necessario eseguire l'installazione di Kubernetes su un cluster IaaS in modo indipendente:
+Normally, Ansible execution is seamlessly embedded and triggered by the main PowerShell script. 
+However, if it is necessary to run the Kubernetes installation on an IaaS cluster independently:
 
 ```bash
 cd infrastructure/ansible
 
-# Assicurarsi che l'inventory/hosts.ini sia stato generato correttamente
-ansible-playbook -i inventory/hosts.ini playbook-k3s.yml --private-key /percorso/alla/chiave.pem
+# Ensure the inventory/hosts.ini has been correctly generated
+ansible-playbook -i inventory/hosts.ini playbook-k3s.yml --private-key /path/to/key.pem
 ```

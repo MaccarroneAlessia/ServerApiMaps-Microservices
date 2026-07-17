@@ -1,10 +1,10 @@
 # KUBERNETES DEPLOYMENT MANIFEST (maps-app)
 
-# definisce come il container Spring Boot deve girare su K3s.
-# Best practices implementate (Production-Ready):
-# - Resource Limits: Blocca RAM a 512Mi per prevenire l'OOMKilled e starvation del nodo.
-# - Liveness Probe: Interroga Spring Actuator per riavviare il pod se va in deadlock.
-# - Readiness Probe: Non ruota il traffico verso il pod finché l'app non è pronta.
+# Defines how the Spring Boot container should run on K3s.
+# Best practices implemented (Production-Ready):
+# - Resource Limits: Locks RAM to 512Mi to prevent OOMKilled and node starvation.
+# - Liveness Probe: Pings Spring Actuator to restart the pod if it enters a deadlock.
+# - Readiness Probe: Stops routing traffic to the pod until the app is ready.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: maps-app
-          # Nome dell'immagine che dovremo buildare e importare in k3s locale
+          # Name of the image we will build and import into local k3s
           image: maps-app:latest
           imagePullPolicy: IfNotPresent
           ports:
@@ -76,7 +76,7 @@ kind: Service
 metadata:
   name: maps-app-service
 spec:
-  # Espone l'app all'esterno del cluster usando una NodePort statica sulla porta 30080
+  # Exposes the app outside the cluster using a static NodePort on port 30080
   type: NodePort
   ports:
     - port: 8080

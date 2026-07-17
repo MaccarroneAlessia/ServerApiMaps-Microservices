@@ -14,9 +14,9 @@ import java.util.concurrent.TimeoutException;
 import java.time.Duration;
 */
 
-// esempio di configurazione programmatica,
-// ma configurazioni in application.properties per semplicità.
-// duplicazione delle configurazioni.
+// Example of programmatic configuration,
+// but relying on application.properties for simplicity.
+// Prevents configuration duplication.
 //@Configuration
 public class Resulience4jConfig {
     
@@ -24,12 +24,12 @@ public class Resulience4jConfig {
     //@Bean
     public CircuitBreakerConfig circuitBreakerConfig() {
         return CircuitBreakerConfig.custom()
-                .failureRateThreshold(50) // Percentuale di fallimenti per aprire il circuito
-                .minimumNumberOfCalls(5)  // Numero minimo di chiamate prima di calcolare il failureRateThreshold
+                .failureRateThreshold(50) // Failure rate percentage threshold to open the circuit
+                .minimumNumberOfCalls(5)  // Minimum number of calls before calculating the failure rate
                 .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
-                .slidingWindowSize(10)    // Numero di chiamate nell'ultimo periodo
-                .waitDurationInOpenState(Duration.ofSeconds(60)) // Tempo di attesa in stato OPEN
-                .permittedNumberOfCallsInHalfOpenState(3) // Chiamate consentite in HALF_OPEN
+                .slidingWindowSize(10)    // Number of calls in the sliding window
+                .waitDurationInOpenState(Duration.ofSeconds(60)) // Wait time in OPEN state
+                .permittedNumberOfCallsInHalfOpenState(3) // Allowed calls in HALF_OPEN state
                 .build();
     }
 
@@ -41,9 +41,9 @@ public class Resulience4jConfig {
     //@Bean
     public RetryConfig retryConfig() {
         return RetryConfig.custom()
-                .maxAttempts(3) // Numero massimo di tentativi
-                .waitDuration(Duration.ofSeconds(2)) // Tempo di attesa tra un tentativo e l'altro
-                .retryExceptions(TimeoutException.class, ResourceAccessException.class) // Eccezioni da ritentare
+                .maxAttempts(3) // Maximum number of retry attempts
+                .waitDuration(Duration.ofSeconds(2)) // Wait duration between attempts
+                .retryExceptions(TimeoutException.class, ResourceAccessException.class) // Exceptions triggering a retry
                 .build();
     }
 
@@ -55,8 +55,8 @@ public class Resulience4jConfig {
     //@Bean
     public TimeLimiterConfig timeLimiterConfig() {
         return TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(5)) // Timeout per la chiamata
-                .cancelRunningFuture(true) // Cancella il future se il timeout scatta
+                .timeoutDuration(Duration.ofSeconds(5)) // Call timeout duration
+                .cancelRunningFuture(true) // Cancels the future if the timeout triggers
                 .build();
     }
 
@@ -69,7 +69,7 @@ public class Resulience4jConfig {
 }
 
 /*
- * prova non necessaria
- * configurazione in application.properties,
- *  una configurazione Java esplicita per Resilience4j, se necessario
+ * Unnecessary test
+ * Configurations are in application.properties,
+ * provides explicit Java configuration for Resilience4j if needed
  */

@@ -5,12 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-//Embeddable per dettagli durata
+// Embeddable for duration details
 @Embeddable
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class DurationInfo {
-    private String text; // es. "10 mins"
-    private Integer value; // es. 600 (seconds)
+    private String text; // e.g., "10 mins"
+    private Integer value; // e.g., 600 (seconds)
 }

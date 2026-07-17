@@ -1,38 +1,37 @@
-# Relazione: Sistemi Cloud e Sviluppo a Microservizi
+# Report: Cloud Systems and Microservices Development
 
-## 1. Introduzione e Obiettivi del Progetto
-Il progetto è stato sviluppato per i corsi di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti** e obiettivo principale la progettazione, containerizzazione e distribuzione in ambiente Cloud di un'applicazione basata sull'architettura a **Microservizi**.
-L'applicazione, sviluppata in **Spring Boot**, ha il compito di raccogliere, analizzare e memorizzare dati sul traffico e geocoding, interfacciandosi con le API esterne di Google Maps.
+## 1. Introduction and Project Objectives
+The project was developed for the **Cloud Systems** and **Distributed Systems Engineering** courses. Its main objective is the design, containerization, and Cloud deployment of an application based on a **Microservices** architecture.
+The application, developed in **Spring Boot**, is designed to collect, analyze, and store traffic and geocoding data by interfacing with external Google Maps APIs.
 
-Il progetto copre l'intero ciclo di vita DevOps (sviluppo, containerizzazione, Continuous Integration e provisioning dell'infrastruttura Cloud) diviso rigorosamente in due fasi:
-1. **Fase Locale (Fase 1)**: Sviluppo e validazione su cluster Kubernetes in locale.
-2. **Fase Cloud (Fase 2)**: Provisioning automatizzato dell'infrastruttura (IaC) su Amazon Web Services (AWS) e adozione di un'architettura **IaaS (Infrastructure as a Service)** avanzata.
-
----
-
-## 2. Architettura dell'Applicazione e Scelte Implementative
-
-L'applicazione segue un classico modello a 3-tier, modernizzato per il cloud:
-- **Presentation Tier**: API RESTful per gestire le richieste client e fornire interfacce web (`AnalysisController`, `TrafficWebController`).
-- **Business Logic Tier**: Moduli di servizio che interrogano le API di Google Maps (`GoogleMapsClient`, `GeocodingService`).
-- **Data Tier**: Connessione a un database relazionale (MySQL 8) gestita con Spring Data JPA.
-
-### Resilience e Fault-Tolerance
-Trattandosi di un sistema distribuito che dipende da un fornitore terzo (Google Maps), è stato introdotto il pattern **Circuit Breaker** (e Retry) tramite la libreria **Resilience4j**.
-
-In cloud, la rete è inaffidabile per definizione. Se le API di Google Maps dovessero risultare irraggiungibili o molto lente, il Circuit Breaker "scatta", bloccando temporaneamente le richieste in uscita. Questo previene l'esaurimento dei thread dell'applicazione Tomcat e salva l'intero backend dal collasso in attesa di timeout infiniti.
-
-### Containerizzazione (Docker)
-L'applicazione è incapsulata in un contenitore tramite un **Dockerfile Multi-Stage**.
-- *Stage 1 (Build)*: Sfrutta Maven per compilare e risolvere le dipendenze in un ambiente effimero.
-- *Stage 2 (Runtime)*: Trasferisce solo il file `.jar` compilato all'interno di un'immagine `distroless` (Java JRE nuda, senza shell o OS completo) per ridurre il peso dell'immagine. 
-Il processo è avviato tramite un utente non-root (`springuser`).
+The project covers the entire DevOps lifecycle (development, containerization, Continuous Integration, and Cloud infrastructure provisioning) strictly divided into two phases:
+1. **Local Phase (Phase 1)**: Development and validation on a local Kubernetes cluster.
+2. **Cloud Phase (Phase 2)**: Automated infrastructure provisioning (IaC) on Amazon Web Services (AWS) adopting an advanced **IaaS (Infrastructure as a Service)** architecture.
 
 ---
 
-## 3. Schema dell'Architettura Cloud (AWS)
-Di seguito l'architettura logica e fisica dei componenti deployati in cloud.
+## 2. Application Architecture and Implementation Choices
 
+The application follows a classic 3-tier model, modernized for the cloud:
+- **Presentation Tier**: RESTful APIs to handle client requests and provide web interfaces (`AnalysisController`, `TrafficWebController`).
+- **Business Logic Tier**: Service modules querying Google Maps APIs (`GoogleMapsClient`, `GeocodingService`).
+- **Data Tier**: Connection to a relational database (MySQL 8) managed via Spring Data JPA.
+
+### Resilience and Fault-Tolerance
+Since this is a distributed system relying on a third-party provider (Google Maps), the **Circuit Breaker** (and Retry) pattern was introduced via the **Resilience4j** library.
+
+In the cloud, the network is unreliable by definition. If Google Maps APIs become unreachable or slow, the Circuit Breaker "trips," temporarily blocking outbound requests. This prevents Tomcat application thread exhaustion and saves the entire backend from collapsing due to infinite timeouts.
+
+### Containerization (Docker)
+The application is encapsulated in a container using a **Multi-Stage Dockerfile**.
+- *Stage 1 (Build)*: Uses Maven to compile and resolve dependencies in an ephemeral environment.
+- *Stage 2 (Runtime)*: Transfers only the compiled `.jar` file into a `distroless` image (bare Java JRE, without a shell or full OS) to reduce image footprint. 
+The process is executed under a non-root user (`springuser`).
+
+---
+
+## 3. Cloud Architecture Diagram (AWS)
+Below is the logical and physical architecture of the components deployed in the cloud.
 
 ```mermaid
 graph TB
@@ -49,7 +48,7 @@ graph TB
         ALB["Application Load Balancer"]
         SSM[("AWS SSM Parameter Store")]
         
-        subgraph VPC["VPC Custom"]
+        subgraph VPC["Custom VPC"]
             subgraph Public["Public Subnets"]
                 subgraph K8S["Kubernetes Cluster (K3s)"]
                     subgraph MasterNode["EC2 Master Node"]
@@ -86,31 +85,30 @@ graph TB
     AppWorker <-->|REST API via Resilience4j| GoogleAPI
 ```
 
-
-*Note architetturali:* 
-- L'Application Load Balancer (ALB) intercetta il traffico da internet e lo distribuisce sui nodi EC2 (Worker/Master) in Round-Robin sulla `NodePort` (30080). 
-- I nodi EC2 ospitano **K3s**, una versione leggera e certificata di Kubernetes.
-- Il database RDS risiede in una **Private Subnet** (senza IP pubblico), accessibile solo dai nodi K3s tramite le regole rigorose dei Security Group.
-- AWS SSM contiene i secret (API Key e Password Database) in formato cifrato.
-
----
-
-## 4. Evoluzione, Contenimento dei Costi e Fase 2
-
-### Scelta IaaS vs PaaS/CaaS
-Inizialmente, l'automazione in Cloud orientava verso l'utilizzo di ECS Fargate o Amazon EKS (Elastic Kubernetes Service). Tuttavia, è stata effettuata una scelta verso un approccio puramente **IaaS**: installare manualmente un cluster Kubernetes (K3s) su macchine virtuali **EC2** non gestite.
-
-La scelta è stata dettata dalla volontà di dimostrare piena capacità di amministrazione sistemistica e controllo granulare sui nodi, sulle reti e sui processi di orchestrazione. Inoltre, EKS prevede un costo fisso, mentre macchine EC2 spot o di piccola taglia permettono un drastico **contenimento dei costi**.
-
-### L'Automazione Infrastructure-as-Code (IaC)
-L'intera infrastruttura Cloud è scritta come codice tramite **Terraform**.
-Nessuna risorsa è stata cliccata a mano sulla console AWS. Terraform provvede a creare le chiavi SSH, la VPC, l'ALB, il DB RDS e le EC2. Al termine della creazione hardware, Terraform cede il controllo dinamico ad **Ansible**, che si collega in SSH ai nodi appena nati e installa il cluster K3s, collegando il Worker al Master.
+*Architectural notes:* 
+- The Application Load Balancer (ALB) intercepts internet traffic and distributes it across EC2 nodes (Worker/Master) using Round-Robin on the `NodePort` (30080). 
+- EC2 nodes host **K3s**, a lightweight, certified Kubernetes distribution.
+- The RDS database resides in a **Private Subnet** (no public IP), accessible only by K3s nodes via strict Security Group rules.
+- AWS SSM holds secrets (API Key and Database Password) in encrypted format.
 
 ---
 
-## 5. Diagramma di Flusso dell'Esecuzione
+## 4. Evolution, Cost Containment, and Phase 2
 
-Il seguente diagramma mostra il ciclo di vita automatizzato che scaturisce quando eseguiamo l'automazione locale fino alla risposta al Client.
+### IaaS vs PaaS/CaaS Choice
+Initially, cloud automation favored managed services like ECS Fargate or Amazon EKS (Elastic Kubernetes Service). However, a purely **IaaS** approach was ultimately chosen: manually installing a Kubernetes cluster (K3s) on unmanaged **EC2** virtual machines.
+
+This decision was driven by the desire to demonstrate full system administration capabilities and granular control over nodes, networks, and orchestration processes. Furthermore, EKS incurs a fixed cost, whereas spot or small EC2 instances allow for drastic **cost containment**.
+
+### Infrastructure-as-Code (IaC) Automation
+The entire Cloud infrastructure is written as code using **Terraform**.
+No resources were provisioned manually on the AWS console. Terraform creates SSH keys, VPCs, ALBs, the RDS DB, and EC2 instances. Upon hardware creation, Terraform yields dynamic control to **Ansible**, which connects via SSH to the newly spun nodes, installs the K3s cluster, and joins the Worker to the Master.
+
+---
+
+## 5. Execution Flow Diagram
+
+The following diagram illustrates the automated lifecycle triggered from local automation to the Client response.
 
 ```mermaid
 sequenceDiagram
@@ -123,82 +121,55 @@ sequenceDiagram
     participant K8s as K3s Master (KubeAPI)
     actor User as Client (Browser)
 
-    Admin->>Script: Esegue lo script PowerShell
-    Script->>Terraform: Avvia 'terraform apply'
-    Terraform->>AWS: Provisioning VPC, RDS, ALB, EC2
-    AWS-->>Terraform: Risorse create (Ritorna IP Pubblici)
-    Terraform->>SSH: Avvia provisioning Ansible su EC2
-    SSH->>AWS: Installa K3s su Master e Worker
-    AWS-->>Script: Inizializzazione hardware terminata
-    Script->>K8s: Inietta 'mysql-secret.yaml' (da AWS SSM)
-    Script->>K8s: Applica 'app-deployment.yaml'
-    K8s-->>Script: Pod in stato 'ContainerCreating' / 'Running'
-    Script-->>Admin: Restituisce l'URL dell'ALB Pubblico
+    Admin->>Script: Runs PowerShell script
+    Script->>Terraform: Triggers 'terraform apply'
+    Terraform->>AWS: Provisions VPC, RDS, ALB, EC2
+    AWS-->>Terraform: Resources created (Returns Public IPs)
+    Terraform->>SSH: Starts Ansible provisioning on EC2
+    SSH->>AWS: Installs K3s on Master and Worker
+    AWS-->>Script: Hardware initialization complete
+    Script->>K8s: Injects 'mysql-secret.yaml' (from AWS SSM)
+    Script->>K8s: Applies 'app-deployment.yaml'
+    K8s-->>Script: Pods in 'ContainerCreating' / 'Running' state
+    Script-->>Admin: Returns Public ALB URL
     
-    User->>AWS: Visita HTTP (ALB URL)
-    AWS->>K8s: ALB bilancia la richiesta verso il NodePort EC2
-    K8s-->>User: Ritorna la pagina HTML / Dati Traffico
+    User->>AWS: HTTP Request (ALB URL)
+    AWS->>K8s: ALB balances request to EC2 NodePort
+    K8s-->>User: Returns HTML page / Traffic Data
 ```
 
 ---
 
-## 6. Documentazione
+## 6. Documentation
 
-### Esecuzione della Fase 1 (Locale)
-Necessita di Docker Desktop (Kubernetes attivato).
-1. **Compilazione**: `docker build -t maps-app:latest ./server-springboot-maps`
-2. **Deploy K8s**: `kubectl apply -f infrastructure/k8s/`
-3. **Visita**: `http://localhost:30080`
-4. **Smantellamento**: `kubectl delete -f infrastructure/k8s/`
+### Phase 1 Execution (Local)
+Requires Docker Desktop (Kubernetes enabled).
+1. **Compilation**: `docker build -t maps-app:latest ./server-springboot-maps`
+2. **K8s Deploy**: `kubectl apply -f infrastructure/k8s/`
+3. **Access**: `http://localhost:30080`
+4. **Teardown**: `kubectl delete -f infrastructure/k8s/`
 
-### Esecuzione della Fase 2 (Cloud AWS)
-Necessita di chiavi AWS configurate in locale (`aws configure`).
-Il deploy avviene tramite uno **Script PowerShell di Automazione Globale** creato ad hoc per fondere i passaggi di Terraform e Kubectl in remoto.
+### Phase 2 Execution (AWS Cloud)
+Requires locally configured AWS keys (`aws configure`).
+Deployment uses a custom **Global Automation PowerShell Script** designed to merge remote Terraform and Kubectl steps.
 
-1. **Deploy Totale**:
+1. **Full Deployment**:
    ```powershell
    cd infrastructure
    .\deploy_k3s_windows.ps1
    ```
-   *Lo script (circa 10 minuti di esecuzione) si occupa di creare l'infrastruttura hardware su AWS, installare Kubernetes e fare il deploy del software, restituendo infine l'endpoint web.*
-   *(Nota operativa: per garantire la compatibilità nativa su Windows senza dipendere da WSL, lo script PowerShell adotta un approccio puramente agent-less tramite SSH crudo per configurare i nodi, bypassando Ansible).*
+   *The script (approx. 10 minutes runtime) handles physical infrastructure creation on AWS, Kubernetes installation, and software deployment, ultimately returning the web endpoint.*
+   *(Operational note: to ensure native Windows compatibility without relying on WSL, the PowerShell script adopts a purely agent-less approach via raw SSH to configure nodes, bypassing Ansible).*
 
-   - Terraform: Gestisce l'infrastruttura fisica (VPC, EC2, ALB, RDS)
-   - SSH (Agent-less): Installa K3s e configura i nodi estraendo dinamicamente i token di join
-   - Kubernetes: Orchesta i container (Deployment, Service, Ingress)
-   - AWS SSM: Gestisce i secret (API Key, Password)
+   - Terraform: Manages physical infrastructure (VPC, EC2, ALB, RDS)
+   - SSH (Agent-less): Installs K3s and configures nodes by dynamically extracting join tokens
+   - Kubernetes: Orchestrates containers (Deployment, Service, Ingress)
+   - AWS SSM: Manages secrets (API Key, Password)
     
-    Senza lo script, l'esecuzione manuale richiederebbe decine di comandi complessi e l'interazione manuale tra Terraform, AWS CLI, Ansible e Kubectl. I comandi da eseguire manualmente sarebbero:
-    
-    ```bash
-    # 1. Provisioning infrastruttura AWS
-    cd infrastructure/aws-terraform
-    terraform init
-    terraform apply -var="db_password=PASS" -var="google_api_key=KEY"
-    
-    # 2. Recupero IP pubblici delle macchine EC2 create
-    MASTER_IP=$(terraform output -raw k3s_master_public_ip)
-    
-    # 3. Provisioning del Software sui Nodi tramite Ansible (su Linux/macOS, o via WSL su Windows)
-    cd ../ansible
-    # Inserimento manuale degli IP nel file hosts (inventory)
-    ansible-playbook -i inventory/hosts.ini playbook-k3s.yml --private-key=k3s-key.pem -u ubuntu
-    
-    # 4. Estrazione credenziali Kubernetes (Kubeconfig) dal Cloud
-    scp -i k3s-key.pem -o StrictHostKeyChecking=no ubuntu@${MASTER_IP}:~/.kube/config ~/.kube/config-aws
-    
-    # 5. Sostituzione IP locale 127.0.0.1 con IP pubblico del Master nel file kubeconfig
-    sed -i "s/127.0.0.1/${MASTER_IP}/g" ~/.kube/config-aws
-    
-    # 6. Push dei secret da AWS SSM a Kubernetes (manuale)
-    # Lettura da AWS CLI e applicazione YAML
-    
-    # 7. Deploy applicazione nel Cluster Remoto
-    kubectl --kubeconfig ~/.kube/config-aws apply -f ../k8s/
-    ```
+    Without the script, manual execution would require dozens of complex commands and manual interaction between Terraform, AWS CLI, Ansible, and Kubectl.
 
-2. **Distruzione (Cost Saving)**: 
-   Per evitare addebiti indesiderati a fine del progetto:
+2. **Destruction (Cost Saving)**: 
+   To avoid unwanted charges at project completion:
    ```bash
    cd infrastructure/aws-terraform
    terraform destroy -auto-approve -var="db_password=PASS" -var="google_api_key=KEY"
@@ -206,51 +177,51 @@ Il deploy avviene tramite uno **Script PowerShell di Automazione Globale** creat
 
 ---
 
-## 7. Gerarchia dei File (Tree) e Struttura del Progetto
+## 7. File Hierarchy (Tree) and Project Structure
 
-Il progetto è modulare e diviso per responsabilità:
+The project is modular and divided by responsibility:
 
 ```text
 ServerApiMaps/
 │
-├── .github/workflows/         # Pipeline CI/CD: Actions per build automatica e push su ECR
+├── .github/workflows/         # CI/CD Pipeline: Actions for auto-build and ECR push
 │   └── deploy.yml
 │
-├── docs/                      # Documentazione di progetto
+├── docs/                      # Project documentation
 │   └── report.md              
 │
-├── infrastructure/            # Codice di automazione DevOps (Fase 1 e 2)
-│   ├── aws-terraform/         # Modelli IaC HCL per creare macchine, rete e DB su AWS
+├── infrastructure/            # DevOps automation code (Phase 1 & 2)
+│   ├── aws-terraform/         # HCL IaC templates to create machines, network, and DB on AWS
 │   │   ├── main.tf
 │   │   ├── ec2.tf
 │   │   └── variables.tf
-│   ├── k8s/                   # Manifesti YAML di Kubernetes per il deploy dell'app
+│   ├── k8s/                   # Kubernetes YAML manifests for app deployment
 │   │   ├── app-deployment.yaml
 │   │   ├── mysql-deployment.yaml
 │   │   └── rbac.yaml
-│   ├── ansible/               # Playbook di configurazione (installazione K3s su nodi nati)
-│   └── deploy_k3s_windows.ps1 # Script PowerShell per orchestrare tutto il cloud 
+│   ├── ansible/               # Configuration playbooks (K3s installation on spawned nodes)
+│   └── deploy_k3s_windows.ps1 # PowerShell script orchestrating the entire cloud setup 
 │
-├── server-springboot-maps/    # Codice Sorgente (Java Spring Boot)
-│   ├── src/main/java/...      # Classi, Controller, Service e configurazioni RabbitMQ/Resilience4j
-│   ├── src/main/resources/    # File application.properties e HTML Templates (Thymeleaf)
-│   ├── pom.xml                # Dipendenze Maven
-│   └── Dockerfile             # Istruzioni Multi-stage per la containerizzazione sicura
+├── server-springboot-maps/    # Source Code (Java Spring Boot)
+│   ├── src/main/java/...      # Classes, Controllers, Services, and RabbitMQ/Resilience4j configs
+│   ├── src/main/resources/    # application.properties and HTML Templates (Thymeleaf)
+│   ├── pom.xml                # Maven dependencies
+│   └── Dockerfile             # Multi-stage instructions for secure containerization
 │
-├── .gitignore                 # Prevenzione commit di TFState e Secrets (mysql-secret.yaml)
+├── .gitignore                 # Prevents committing TFState and Secrets (mysql-secret.yaml)
 └── README.md                  
 ```
 
 ---
 
-## 8. Troubleshooting e Sfide Tecniche Risolte
+## 8. Troubleshooting and Solved Technical Challenges
 
-Durante la migrazione dall'ambiente locale a quello Cloud, sono emersi problemi architetturali complessi, risolti con un approccio analitico e DevOps:
+During the migration from local to Cloud environments, complex architectural issues emerged, which were solved using an analytical and DevOps approach:
 
-1. **Collasso del Server per OOM (Out of Memory)**
-   Il nodo Master EC2 in AWS (istanza free-tier `t3.micro`) si bloccava sistematicamente ("freeze") durante il deploy dell'app Java. La connessione SSH andava in timeout.
-   Attraverso le metriche di monitoraggio, è stato riscontrato un esaurimento della memoria fisica (la t3.micro possiede solo 1 GB di RAM), che causava pesanti operazioni di Memory Swapping (Thrashing) per soddisfare i requisiti minimi del cluster K3s combinati a quelli del container Spring Boot. Il problema è stato risolto con un temporaneo ma essenziale *Scale-Up Verticale* all'istanza `t3.small` (2 GB di RAM).
+1. **Server Collapse due to OOM (Out of Memory)**
+   The EC2 Master node in AWS (free-tier `t3.micro` instance) systematically froze during Java app deployment. The SSH connection timed out.
+   Monitoring metrics revealed physical memory exhaustion (t3.micro only has 1 GB of RAM), causing heavy Memory Swapping (Thrashing) to meet minimum K3s cluster requirements combined with the Spring Boot container. The issue was resolved with a temporary but essential *Vertical Scale-Up* to a `t3.small` instance (2 GB of RAM).
 
-2. **Falso Positivo dell'Health-Check (502 Bad Gateway sull'ALB)**
-   L'Application Load Balancer mostrava i nodi come "Unhealthy" e restituiva 502 Bad Gateway ai client, sebbene l'app fosse attiva nei container.
-   Ispezionando i log dei Pod in Kubernetes e l'endpoint `/actuator/health` di Spring Boot, è risultato che l'applicazione si autoproclamava in stato "DOWN". La causa era l'Actuator che, di default, provava a stabilire una connessione con il broker RabbitMQ. Nel Cloud, tale broker non era stato deploaito volontariamente. Invece di modificare il codice sorgente o ricompilare il container, è stata sfruttata la flessibilità di Kubernetes iniettando a runtime la variabile d'ambiente `MANAGEMENT_HEALTH_RABBIT_ENABLED=false` direttamente dentro `app-deployment.yaml`. Ciò ha disabilitato dinamicamente il check di RabbitMQ, facendo tornare lo stato dell'app a "UP" e sbloccando il traffico dell'ALB.
+2. **Health-Check False Positive (502 Bad Gateway on ALB)**
+   The Application Load Balancer showed nodes as "Unhealthy" and returned 502 Bad Gateways to clients, even though the app was running inside the containers.
+   Inspecting Kubernetes Pod logs and the Spring Boot `/actuator/health` endpoint revealed the application was reporting a "DOWN" status. The root cause was the Actuator defaulting to establish a connection with the RabbitMQ broker. In the Cloud, this broker was intentionally not deployed. Instead of modifying source code or rebuilding the container, Kubernetes flexibility was leveraged by injecting the `MANAGEMENT_HEALTH_RABBIT_ENABLED=false` environment variable at runtime directly into `app-deployment.yaml`. This dynamically disabled the RabbitMQ check, restoring the app status to "UP" and unblocking ALB traffic.

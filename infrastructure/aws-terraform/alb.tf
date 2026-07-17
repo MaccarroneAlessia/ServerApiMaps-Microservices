@@ -1,9 +1,9 @@
 # AWS APPLICATION LOAD BALANCER (ALB)
 
-# L'ALB fa da "Proxy" pubblico. Invece di esporre direttamente le macchine EC2
-# ai client su Internet, l'ALB riceve traffico HTTP sulla porta 80 e lo instrada 
-# in modo sicuro verso i nodi sulla porta 30080 (il NodePort esposto da K3s).
-# Definisce anche un Target Group per monitorare la salute dei nodi EC2.
+# The ALB acts as a public "Proxy". Instead of directly exposing the EC2 machines
+# to internet clients, the ALB receives HTTP traffic on port 80 and securely routes it
+# to the nodes on port 30080 (the NodePort exposed by K3s).
+# It also defines a Target Group to monitor the health of the EC2 nodes.
 
 resource "aws_lb" "main" {
   name               = "maps-alb"
@@ -15,7 +15,7 @@ resource "aws_lb" "main" {
 
 resource "aws_lb_target_group" "app" {
   name        = "maps-tg"
-  port        = 30080 # NodePort di K3s
+  port        = 30080 # K3s NodePort
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "instance"

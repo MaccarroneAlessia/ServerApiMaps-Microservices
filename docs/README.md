@@ -1,9 +1,9 @@
-# Documentazione Architettura e API 
+# Architecture and API Documentation
 
-Questa directory è dedicata alla raccolta della documentazione progettuale e architetturale che descrive il funzionamento del sistema ad alto livello. Non contiene codice sorgente applicativo, né script di automazione.
+This directory is dedicated to the collection of design and architectural documentation that describes the high-level operation of the system. It does not contain application source code or automation scripts.
 
-## 📂 Struttura
+## 📂 Structure
 
-- `report.md`: La relazione tecnica completa del progetto (obiettivi, scelte implementative, architettura cloud IaaS, containerizzazione).
-- `img/`: Cartella contenente file multimediali (immagine e demo interfaccia) di supporto per la relazione.
-
+- `report.md`: The complete technical report of the project (objectives, implementation choices, IaaS cloud architecture, containerization).
+- `img/`: Folder containing multimedia files (images and interface demos) supporting the report.
+- `tools.md`: List of tools and technologies used.

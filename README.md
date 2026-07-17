@@ -7,184 +7,184 @@
 [![AWS](https://img.shields.io/badge/AWS-Cloud-yellow.svg)](https://aws.amazon.com/)
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF.svg)](https://github.com/features/actions)
 
-Progetto universitario per l'esame di **Sistemi Cloud** e **Ingegneria dei Sistemi Distribuiti**.  
-Questa repository contiene l'intero sviluppo, la containerizzazione e l'automazione infrastrutturale (Infrastructure as Code) di un'applicazione a microservizi basata su **Spring Boot** per l'analisi del traffico, dotata di geocoding integrato tramite le API di Google Maps.
+University project for the **Cloud Systems** and **Distributed Systems Engineering** exams.  
+This repository contains the full development, containerization, and infrastructure automation (Infrastructure as Code) of a microservices application based on **Spring Boot** for traffic analysis, featuring integrated geocoding via Google Maps APIs.
 
-Il focus principale del progetto è sulle metodologie **DevOps moderne**, sull'infrastruttura **Cloud Ibrida** e sulla **Fault-Tolerance**.
-
----
-
-## 🏗️ Architettura del Progetto
-
-L'applicazione e l'infrastruttura sono strutturate seguendo pattern avanzati per i sistemi distribuiti:
-
-### 1. Livello Applicativo (Backend)
-- **Framework**: Spring Boot 3 con Java 17.
-- **Resilienza**: L'integrazione con Google Maps è protetta tramite **Resilience4j** (implementando `Circuit Breaker`, `Retry` e `TimeLimiter`) per prevenire fault a cascata.
-- **Asincronia**: I processi di raccolta dati usano `CompletableFuture` e Message Brokering (RabbitMQ).
-- **Sicurezza**: L'immagine Docker usa una JRE *distroless* e l'app gira con utente ristretto (`springuser`).
-
-### 2. Livello Infrastruttura Cloud (AWS)
-Invece di adottare servizi managed "black-box" (come EKS), l'infrastruttura Cloud è stata progettata per garantire il massimo controllo sui nodi tramite **Terraform (IaC)**:
-- **VPC Custom**: Rete isolata con subnet pubbliche e private.
-- **Amazon RDS (MySQL)**: Database relazionale isolato e protetto nelle Subnet Private.
-- **Application Load Balancer (ALB)**: Proxy inverso con Health Checks verso i pod.
-- **AWS Parameter Store**: Gestione Zero-Trust dei segreti (API keys, password DB).
-
-### 3. Livello Orchestrazione (Kubernetes)
-Il deploy avviene tramite **K3s** (distribuzione Kubernetes leggera) configurato automaticamente sui nodi EC2.
-Le best-practice K8s implementate includono:
-- **Resource Limits & Requests**: Prevenzione contro Memory Leak ed esaurimento risorse (OOMKilled).
-- **Liveness & Readiness Probes**: Monitoraggio attivo dei container via Actuator.
-- **ImagePullSecrets**: Autenticazione K8s verso AWS ECR (Elastic Container Registry) per le immagini private.
+The main focus of the project is on modern **DevOps methodologies**, **Hybrid Cloud** infrastructure, and **Fault-Tolerance**.
 
 ---
 
-## 📂 Struttura della Repository
+## 🏗️ Project Architecture
 
-- `/server-springboot-maps`: Codice sorgente Java dell'applicazione e unit tests.
-- `/infrastructure/aws-terraform`: Codice IaC per la creazione delle risorse fisiche su AWS.
-- `/infrastructure/k8s`: Manifesti Kubernetes (`Deployment`, `Service`, `Secret`).
-- `/infrastructure/ansible`: Playbook Ansible per il configuration management dei nodi K3s.
-- `/.github/workflows`: Pipeline CI/CD automatizzata in GitHub Actions.
-- `/materiale`: Risorse di studio, resoconti di ispezione e Q&A preparatorie all'esame.
+The application and infrastructure are structured following advanced patterns for distributed systems:
+
+### 1. Application Layer (Backend)
+- **Framework**: Spring Boot 3 with Java 17.
+- **Resiliency**: Integration with Google Maps is protected via **Resilience4j** (implementing `Circuit Breaker`, `Retry`, and `TimeLimiter`) to prevent cascading failures.
+- **Asynchronous Processing**: Data collection processes use `CompletableFuture` and Message Brokering (RabbitMQ).
+- **Security**: The Docker image uses a *distroless* JRE, and the app runs with a restricted user (`springuser`).
+
+### 2. Cloud Infrastructure Layer (AWS)
+Instead of adopting "black-box" managed services (like EKS), the Cloud infrastructure was designed to ensure maximum control over the nodes using **Terraform (IaC)**:
+- **Custom VPC**: Isolated network with public and private subnets.
+- **Amazon RDS (MySQL)**: Relational database isolated and protected in Private Subnets.
+- **Application Load Balancer (ALB)**: Reverse proxy with Health Checks targeting the pods.
+- **AWS Parameter Store**: Zero-Trust secret management (API keys, DB passwords).
+
+### 3. Orchestration Layer (Kubernetes)
+Deployment is handled via **K3s** (a lightweight Kubernetes distribution) automatically configured on EC2 nodes.
+Implemented K8s best practices include:
+- **Resource Limits & Requests**: Prevention against Memory Leaks and resource exhaustion (OOMKilled).
+- **Liveness & Readiness Probes**: Active container monitoring via Actuator.
+- **ImagePullSecrets**: K8s authentication against AWS ECR (Elastic Container Registry) for private images.
+
+---
+
+## 📂 Repository Structure
+
+- `/server-springboot-maps`: Java source code of the application and unit tests.
+- `/infrastructure/aws-terraform`: IaC code for provisioning physical resources on AWS.
+- `/infrastructure/k8s`: Kubernetes manifests (`Deployment`, `Service`, `Secret`).
+- `/infrastructure/ansible`: Ansible playbooks for configuration management of K3s nodes.
+- `/.github/workflows`: Automated CI/CD pipeline in GitHub Actions.
+- `/materiale`: Study resources, inspection reports, and Q&A prep for the exam.
 
 ---
 
 ## 🚀 Getting Started
 
-Il progetto può essere eseguito localmente o sul Cloud AWS. Prima di iniziare, è fondamentale configurare i prerequisiti comuni.
+The project can be run locally or on the AWS Cloud. Before starting, it's essential to configure the common prerequisites.
 
-### 🔑 Prerequisito: Google Maps API Key
-Per il corretto funzionamento dell'applicativo (geocoding e analisi del traffico), è richiesta una chiave API di Google Maps valida:
-1. Vai sulla [Google Cloud Console - API e Servizi](https://console.cloud.google.com/apis/credentials).
-2. Crea un nuovo progetto (se non lo hai già) e assicurati che la fatturazione sia abilitata.
-3. Clicca in alto su **Crea credenziali** -> **Chiave API**.
-4. Copia la chiave generata. *(chiave senza restrizioni di indirizzo IP, altrimenti il Load Balancer cloud verrebbe bloccato).*
+### 🔑 Prerequisite: Google Maps API Key
+For the application to function correctly (geocoding and traffic analysis), a valid Google Maps API Key is required:
+1. Go to the [Google Cloud Console - APIs & Services](https://console.cloud.google.com/apis/credentials).
+2. Create a new project (if you haven't already) and ensure billing is enabled.
+3. Click on **Create credentials** -> **API key** at the top.
+4. Copy the generated key. *(Use a key without IP address restrictions, otherwise the cloud Load Balancer will be blocked).*
 
 ---
 
-### Fase 1: Esecuzione Locale (Docker & Kubernetes locale)
+### Phase 1: Local Execution (Docker & Local Kubernetes)
 
-**Prerequisiti Locali:** 
-- Avere **Docker Desktop** installato e *avviato* sul proprio computer.
-- Dalle impostazioni di Docker Desktop (Settings), andare su **Kubernetes** e spuntare **"Enable Kubernetes"**.
+**Local Prerequisites:** 
+- Have **Docker Desktop** installed and *running* on your computer.
+- From Docker Desktop Settings, go to **Kubernetes** and check **"Enable Kubernetes"**.
 
-1. **Configurazione dei Segreti (`mysql-secret.yaml`)**:
-   Prima di fare il deploy locale, devi inserire la tua API Key nel cluster. Kubernetes richiede che i segreti siano in formato **Base64**.
-   - Converti la tua API Key in Base64 (puoi usare un tool online o da terminale: `echo -n "TUA_CHIAVE" | base64`).
-   - Apri il file `infrastructure/k8s/mysql-secret.yaml`.
-   - Modifica il valore `GOOGLE_MAPS_API_KEY: ` inserendo la tua stringa in Base64 appena generata. (Fai lo stesso per le password del DB se le hai modificate).
+1. **Secret Configuration (`mysql-secret.yaml`)**:
+   Before deploying locally, you must insert your API Key into the cluster. Kubernetes requires secrets to be in **Base64** format.
+   - Convert your API Key to Base64 (you can use an online tool or the terminal: `echo -n "YOUR_KEY" | base64`).
+   - Open the `infrastructure/k8s/mysql-secret.yaml` file.
+   - Modify the `GOOGLE_MAPS_API_KEY: ` value by inserting your newly generated Base64 string. (Do the same for DB passwords if you modified them).
 
-2. **Build dell'immagine locale**:
+2. **Build the local image**:
    ```bash
    cd server-springboot-maps
    docker build -t maps-app:latest .
    ```
 
-3. **Deploy sul cluster locale**:
+3. **Deploy on the local cluster**:
    ```bash
    cd ..
    kubectl apply -f infrastructure/k8s/
    ```
 
-4. L'applicazione sarà disponibile su: `http://localhost:30080`
+4. The application will be available at: `http://localhost:30080`
 
 ---
 
-### Fase 2: Deploy in Cloud (AWS & Terraform)
+### Phase 2: Cloud Deployment (AWS & Terraform)
 
-Il deploy in cloud è **totalmente automatizzato** tramite script multi-piattaforma. Crea da zero la VPC, le macchine EC2, installa Kubernetes e lancia l'applicativo, iniettando automaticamente i segreti in modo sicuro.
+Cloud deployment is **fully automated** via cross-platform scripts. It creates the VPC, EC2 machines from scratch, installs Kubernetes, and launches the application, securely injecting secrets.
 
-**Prerequisiti:** Account AWS configurato (chiavi in `~/.aws/credentials`), Terraform installato.
+**Prerequisites:** Configured AWS Account (keys in `~/.aws/credentials`), Terraform installed.
 
-#### Su macOS / Linux / WSL (via Ansible):
+#### On macOS / Linux / WSL (via Ansible):
 ```bash
 cd infrastructure
 chmod +x deploy_k3s_linux.sh
-./deploy_k3s_linux.sh "PasswordDB" "ApiKeyGoogle"
+./deploy_k3s_linux.sh "DbPassword" "GoogleApiKey"
 ```
 
-#### Su Windows (via PowerShell e SSH agent-less):
+#### On Windows (via PowerShell and agent-less SSH):
 ```powershell
 cd infrastructure
-.\deploy_k3s_windows.ps1 -DbPassword "PasswordDB" -GoogleApiKey "ApiKeyGoogle"
+.\deploy_k3s_windows.ps1 -DbPassword "DbPassword" -GoogleApiKey "GoogleApiKey"
 ```
 
-> **Nota:** Lo script PowerShell si occuperà automaticamente di codificare in Base64 la API Key e la password del DB, per poi iniettarle nei Secret di K3s in modo sicuro, senza esporle nel file YAML hardcodato. Al termine del processo, lo script restituirà l'URL dell'Application Load Balancer pubblico.
+> **Note:** The PowerShell script will automatically encode the API Key and DB password in Base64, injecting them into the K3s Secrets securely, without exposing them in hardcoded YAML files. Upon completion, the script will output the public URL of the Application Load Balancer.
 
 ---
 
 ## 🔄 CI/CD Pipeline
 
-Ad ogni commit sul branch `main`, la pipeline di GitHub Actions si occupa di:
-1. Eseguire la suite di test (**Test Gate** con Mockito).
-2. Se i test passano, eseguire la build dell'immagine Docker.
-3. Inviare l'immagine su **AWS ECR** (Elastic Container Registry).
-4. Avviare un **Rolling Update** su Kubernetes (K3s Master Node) senza downtime tramite SSH remoto.
+On every commit to the `main` branch, the GitHub Actions pipeline handles:
+1. Running the test suite (**Test Gate** with Mockito).
+2. If tests pass, building the Docker image.
+3. Pushing the image to **AWS ECR** (Elastic Container Registry).
+4. Initiating a **Rolling Update** on Kubernetes (K3s Master Node) with zero downtime via remote SSH.
 
-### 🔐 Configurazione dei Segreti di GitHub Actions
-Per far funzionare il deploy automatico su cloud a ogni `git push`, devi configurare i seguenti **Repository Secrets** su GitHub (vai su **Settings > Secrets and variables > Actions > New repository secret**):
+### 🔐 GitHub Actions Secrets Configuration
+To enable automated cloud deployment on every `git push`, configure the following **Repository Secrets** on GitHub (go to **Settings > Secrets and variables > Actions > New repository secret**):
 
-- `AWS_ACCESS_KEY_ID`: La tua chiave di accesso pubblica dell'account AWS.
-- `AWS_SECRET_ACCESS_KEY`: La tua chiave segreta dell'account AWS.
-- `K3S_MASTER_IP`: L'indirizzo IP pubblico del nodo Master (lo vedi stampato alla fine dell'esecuzione dello script PowerShell o Terraform).
-- `K3S_SSH_KEY`: Il contenuto testuale completo della chiave privata SSH generata da Terraform per accedere alle macchine (apri con il blocco note il file locale `infrastructure/ansible/k3s-key.pem` e copia tutto il contenuto, compresi i tag BEGIN/END).
-- `SPRING_DATASOURCE_URL`: L'URL di connessione al database RDS, nel formato esatto (l'endpoint RDS viene restituito dall'output finale dello script o di Terraform).
+- `AWS_ACCESS_KEY_ID`: Your AWS account public access key.
+- `AWS_SECRET_ACCESS_KEY`: Your AWS account secret key.
+- `K3S_MASTER_IP`: The public IP address of the Master node (printed at the end of the PowerShell or Terraform script execution).
+- `K3S_SSH_KEY`: The full text content of the SSH private key generated by Terraform to access the machines (open the local `infrastructure/ansible/k3s-key.pem` file with notepad and copy everything, including BEGIN/END tags).
+- `SPRING_DATASOURCE_URL`: The RDS database connection URL in the exact format (the RDS endpoint is returned by the final script or Terraform output).
 
 ---
 
-## 🩺 Diagnostica e Log
+## 🩺 Diagnostics and Logging
 
-Se qualcosa va storto durante l'esecuzione in cloud (es. errore `502` o `504` dal browser), tramite il terminale locale si possono visualizzare i log dei container e risalire al problema.
+If something goes wrong during cloud execution (e.g., `502` or `504` error from the browser), you can view container logs via the local terminal to identify the issue.
 
-**1. Controllare lo stato dei container (Pod):**
-Dalla root del progetto, esegui:
+**1. Check container status (Pods):**
+From the project root, run:
 ```bash
 ssh -o StrictHostKeyChecking=no -i infrastructure/ansible/k3s-key.pem ubuntu@<K3S_MASTER_IP> "sudo k3s kubectl get pods -A"
 ```
-*(Sostituisci `<K3S_MASTER_IP>` con l'IP pubblico dell'istanza master).*
+*(Replace `<K3S_MASTER_IP>` with the public IP of the master instance).*
 
-**2. Leggere i Log dell'Applicazione in tempo reale:**
-Per vedere i log di Spring Boot scorrere in diretta, esegui:
+**2. Read Real-time Application Logs:**
+To stream Spring Boot logs live, run:
 ```bash
 ssh -o StrictHostKeyChecking=no -i infrastructure/ansible/k3s-key.pem ubuntu@<K3S_MASTER_IP> "sudo k3s kubectl logs -l app=maps-app --tail=100 -f"
 ```
-*(Premi `Ctrl+C` per uscire).*
+*(Press `Ctrl+C` to exit).*
 
-**🛠️ Risoluzione dei problemi comuni (Troubleshooting):**
-- **Error 502 Bad Gateway:** Il Load Balancer funziona, ma l'app Spring Boot non è ancora pronta (si sta avviando) oppure è crashata (magari per mancanza di memoria). Controlla i log.
-- **Error 504 Gateway Time-out:** Il Load Balancer non riesce a comunicare con i server EC2. Probabilmente le macchine sono in fase di riavvio o bloccate.
-- **Lentezza / Blocchi improvvisi:** L'utilizzo di micro-istanze AWS (`t3.micro`/`t3.small`) comporta l'uso di "Crediti CPU". Se esauriti, le performance crollano e Kubernetes potrebbe sembrare bloccato. Riavviare l'istanza azzera il problema temporaneamente.
+**🛠️ Common Troubleshooting:**
+- **Error 502 Bad Gateway:** The Load Balancer works, but the Spring Boot app isn't ready yet (it's starting) or has crashed (possibly due to memory). Check the logs.
+- **Error 504 Gateway Time-out:** The Load Balancer cannot communicate with EC2 servers. Machines are likely restarting or frozen.
+- **Sluggishness / Sudden Freezes:** Using AWS micro-instances (`t3.micro`/`t3.small`) involves "CPU Credits". When depleted, performance plummets and Kubernetes might appear frozen. Restarting the instance temporarily resets the problem.
 
 ---
 
-## ⏸️ Gestione Costi: Spegnimento Temporaneo (Stop & Start)
+## ⏸️ Cost Management: Temporary Shutdown (Stop & Start)
 
-Per "spegnere" l'infrastruttura per non pagare quando non la usi (senza distruggerla):
-1. Vai sulla Console AWS -> EC2 -> Seleziona le istanze -> **Stop instance**.
-2. Quando vuoi riutilizzarla, seleziona le istanze -> **Start instance**.
+To "turn off" the infrastructure and avoid paying when not in use (without destroying it):
+1. Go to the AWS Console -> EC2 -> Select the instances -> **Stop instance**.
+2. When you want to reuse it, select the instances -> **Start instance**.
 
-⏱️ **Tempi di avvio a freddo (Cold Boot):**
-Dopo aver riavviato le macchine, per avere il sito web di nuovo online occorrono in media **3 o 4 minuti** (il tempo necessario per far avviare Linux, K3s, e per l'inizializzazione del container Spring Boot). Non preoccuparti se in questi 3-4 minuti ricevi errori *502 Bad Gateway* o *504 Gateway Time-out* dal Load Balancer: è normale durante la fase di riscaldamento.
+⏱️ **Cold Boot Times:**
+After restarting the machines, it takes an average of **3 to 4 minutes** for the website to come back online (time needed to boot Linux, K3s, and initialize the Spring Boot container). Don't worry if you receive *502 Bad Gateway* or *504 Gateway Time-out* errors from the Load Balancer during these 3-4 minutes: it's normal during warm-up.
 
-⚠️ **ATTENZIONE:** Quando esegui uno *Stop* su AWS, alla successiva accensione **l'IP Pubblico delle istanze cambierà**. 
-- Il sito web continuerà a funzionare automaticamente (poiché l'ALB usa riferimenti interni).
-- **Per i successivi deploy (CI/CD)** dovrai aggiornare il secret `K3S_MASTER_IP` su GitHub Actions con il nuovo indirizzo IP.
-  - *💡 note:* puoi trovare il nuovo IP lanciando questo comando dal terminale locale:
+⚠️ **WARNING:** When you perform a *Stop* on AWS, **the Public IP of the instances will change** upon the next startup. 
+- The website will continue to work automatically (as the ALB uses internal references).
+- **For subsequent deployments (CI/CD)** you must update the `K3S_MASTER_IP` secret on GitHub Actions with the new IP address.
+  - *💡 note:* you can find the new IP by running this command from the local terminal:
     ```bash
     aws ec2 describe-instances --region eu-west-1 --filters "Name=tag:Name,Values=maps-k3s-master" --query "Reservations[*].Instances[*].PublicIpAddress" --output text
     ```
-  - *Alternativa (via Console AWS):* 
-    1. Vai sulla Dashboard EC2 -> **Instances**.
-    2. Seleziona l'istanza `maps-k3s-master` (assicurati di essere nella regione *Irlanda eu-west-1*).
-    3. Nel riquadro inferiore (tab *Details*), copia il valore di **Public IPv4 address**.
+  - *Alternative (via AWS Console):* 
+    1. Go to the EC2 Dashboard -> **Instances**.
+    2. Select the `maps-k3s-master` instance (ensure you're in the *Ireland eu-west-1* region).
+    3. In the lower pane (*Details* tab), copy the **Public IPv4 address** value.
 
 ---
 
-## 🧹 Cost Saving (Distruzione Definitiva)
+## 🧹 Cost Saving (Permanent Destruction)
 
-Per smantellare l'intera infrastruttura Cloud ed evitare addebiti indesiderati a fine test/esame:
+To dismantle the entire Cloud infrastructure and avoid unwanted charges at the end of testing/exam:
 
 ```bash
 cd infrastructure/aws-terraform

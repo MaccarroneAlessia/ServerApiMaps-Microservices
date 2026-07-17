@@ -1,38 +1,38 @@
 # Kubernetes (K8s / K3s) Manifests
 
-**Kubernetes (K8s)** è lo standard de facto open-source per l'automazione, il deployment e la gestione operativa di applicazioni containerizzate. In questo progetto è utilizzata una derivazione estremamente leggera e ottimizzata denominata **K3s** (Rancher). Questa cartella è il repository dei cosiddetti "Manifesti", ovvero file YAML che descrivono in modo dichiarativo come deve essere modellato l'ecosistema a runtime.
+**Kubernetes (K8s)** is the open-source de facto standard for the automation, deployment, and operational management of containerized applications. This project utilizes an extremely lightweight and optimized derivative named **K3s** (Rancher). This folder is the repository for the so-called "Manifests", which are YAML files that declaratively describe how the runtime ecosystem should be modeled.
 
-L'infrastruttura software a runtime è qui definita. Invece di lanciare isolatamente singoli container (come si farebbe tramite Docker CLI), le configurazioni istruiscono il control plane di Kubernetes su quanti pod desideriamo, su che porte esporli, come si parlano tra di loro e in che modo iniettare la configurazione. Sarà poi Kubernetes ad assicurarsi di mantenere lo "stato desiderato", rimpiazzando in autonomia eventuali pod non funzionanti tramite self-healing.
+The runtime software infrastructure is defined here. Instead of launching individual containers in isolation (as one would via the Docker CLI), the configurations instruct the Kubernetes control plane on how many pods we want, which ports to expose them on, how they communicate with each other, and how to inject configuration. Kubernetes will then ensure to maintain the "desired state", autonomously replacing any failing pods via self-healing.
 
-## 📂 Struttura
+## 📂 Structure
 
-La directory racchiude i Manifesti YAML da applicare:
-- **`app-deployment.yaml`**: Descrive l'istanza dell'Applicazione Spring Boot. Stabilisce da quale repository scaricare l'immagine Docker, quanti limiti di risorse (CPU/RAM) imporre e il numero di repliche. Include contestualmente il Service associato (`NodePort`) per l'esposizione.
-- **`mysql-deployment.yaml`**: Definisce l'infrastruttura del database locale MySQL nel caso in cui non si stia usando l'AWS RDS managed. Include Deployment, Service e dichiarazione del Persistent Volume.
-- **`app-configmap.yaml`**: Contiene la mappa delle variabili d'ambiente non sensibili (ad es. l'URL di connessione).
-- **`*-secret.yaml`**: (Attenzione: volutamente ignorati via `.gitignore`). File che incapsulano dati sensibili come API keys o le credenziali generate dallo script.
-- **`cloud/`**: Cartella adibita a ospitare i manifesti Kubernetes dedicati specificamente all'ambiente cloud (AWS).
+The directory houses the YAML Manifests to be applied:
+- **`app-deployment.yaml`**: Describes the Spring Boot Application instance. It establishes from which repository to download the Docker image, what resource limits (CPU/RAM) to impose, and the replica count. It also includes the associated Service (`NodePort`) for exposure.
+- **`mysql-deployment.yaml`**: Defines the local MySQL database infrastructure in the event that managed AWS RDS is not being used. It includes the Deployment, Service, and Persistent Volume declaration.
+- **`app-configmap.yaml`**: Contains the map of non-sensitive environment variables (e.g., the connection URL).
+- **`*-secret.yaml`**: (Note: intentionally ignored via `.gitignore`). Files encapsulating sensitive data such as API keys or script-generated credentials.
+- **`cloud/`**: Folder designated to host Kubernetes manifests specifically tailored for the cloud environment (AWS).
 
-## 💡 Architettura e Design
+## 💡 Architecture & Design
 
-1. **Esportazione tramite NodePort**: I pod dell'applicazione sono esposti usando una NodePort statica elevata (es. `30080`) a livello di istanza EC2. Dopodiché interviene l'Application Load Balancer (ALB) predisposto da Terraform, che aggancia tale porta intercettando e filtrando il traffico in ingresso verso i cluster node.
-2. **Isolamento della Configurazione**: Le chiavi crittografiche (Google Maps) e le password del database MySQL sono isolate nel layer Secret, separate nettamente dall'immagine Docker. Il file `mysql-secret.yaml` resta escluso dal controllo di versione.
-3. **Decoupling Ambientale**: I manifesti presenti sono agnostici rispetto all'ambiente. È possibile applicare l'applicazione indifferentemente sul Docker Desktop locale o sull'ecosistema remoto AWS senza dover stravolgere la base del deployment.
+1. **NodePort Exposure**: The application pods are exposed using a high static NodePort (e.g., `30080`) at the EC2 instance level. Subsequently, the Application Load Balancer (ALB) provisioned by Terraform steps in, hooking onto this port by intercepting and routing inbound traffic toward the cluster nodes.
+2. **Configuration Isolation**: Cryptographic keys (Google Maps) and MySQL database passwords are isolated in the Secret layer, strictly separated from the Docker image. The `mysql-secret.yaml` file remains excluded from version control.
+3. **Environmental Decoupling**: The manifests are environment-agnostic. The application can be seamlessly applied whether on a local Docker Desktop or the remote AWS ecosystem without needing to overhaul the deployment base.
 
-## 🚀 Comandi per il Deploy
+## 🚀 Deployment Commands
 
-Lo script PowerShell radice si occupa di iniettare autonomamente questi manifesti verso AWS.
-Qualora si preferisse lanciare il cluster in un ambiente locale (ad es. su Docker Desktop):
+The root PowerShell script takes care of autonomously injecting these manifests into AWS.
+If you prefer to launch the cluster in a local environment (e.g., on Docker Desktop):
 
 ```bash
 cd infrastructure/k8s
 
-# Applica massivamente tutti i manifesti
+# Apply all manifests in bulk
 kubectl apply -f .
 
-# Verifica lo stato dei Pod 
+# Check Pod status
 kubectl get pods
 
-# Elimina tutte le risorse create
+# Delete all created resources
 kubectl delete -f .
 ```

@@ -1,7 +1,7 @@
 package edu.ing.unict.springboot.server_springboot_maps.adapter;
 
 /*
- * un'interfaccia per il fornitore di dati sul traffico e un adapter specifico per Google Maps. Questo disaccoppia il client GoogleMapsClient dal servizio di raccolta, permettendo di cambiare facilmente la sorgente dati in futuro (es. Bing Maps, OpenStreetMap) senza modificare la logica di raccolta.
+ * An interface for the traffic data provider and a specific adapter for Google Maps. This decouples the GoogleMapsClient from the collection service, making it easy to swap the data source in the future (e.g., Bing Maps, OpenStreetMap) without modifying the collection logic.
  */
 
 import edu.ing.unict.springboot.server_springboot_maps.model.RouteDetails;
@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
 
 import com.google.maps.model.GeocodingResult;
 
-//interfaccia Adapter
+// Adapter interface
 public interface TrafficDataProvider {
     CompletableFuture<RouteDetails> getTrafficDetails(String origin, String destination);
 

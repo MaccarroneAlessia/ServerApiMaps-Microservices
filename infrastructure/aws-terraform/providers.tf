@@ -7,10 +7,10 @@ terraform {
   }
 
   # -------------------------------------------------------------------------
-  # BACKEND S3 REMOTO (Production-Ready)
-  # Decommentare questo blocco per salvare lo State in cloud condiviso.
-  # Assicurarsi di aver prima creato il bucket "maps-app-terraform-state-bucket"
-  # e la tabella DynamoDB "terraform-state-locks" manualmente su AWS.
+  # REMOTE S3 BACKEND (Production-Ready)
+  # Uncomment this block to store the State in a shared cloud bucket.
+  # Ensure the "maps-app-terraform-state-bucket" bucket and
+  # "terraform-state-locks" DynamoDB table are manually created on AWS first.
   # -------------------------------------------------------------------------
   # backend "s3" {
   #   bucket         = "maps-app-terraform-state-bucket"

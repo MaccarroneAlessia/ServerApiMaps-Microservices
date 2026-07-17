@@ -9,7 +9,7 @@ import java.util.Optional;
 @Repository
 public interface LatLngRepository extends JpaRepository<LatLng, Long> {
     Optional<LatLng> findByLatitudeAndLongitude(Double latitude, Double longitude);
-    // metodo senza body perchè imprementato automaticamente da Spring Data JPA
+    // Method without a body because it is automatically implemented by Spring Data JPA
     List<LatLng> findByName(String name);
     
 }

@@ -24,27 +24,27 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@Service // classe di servizio gestita dal framework
+@Service // Framework-managed service class
 public class TrafficCollectionService {
-    // Logger per registrare messaggi informativi, di avviso ed errore
+    // Logger for informational, warning, and error messages
     private static final Logger logger = LoggerFactory.getLogger(TrafficCollectionService.class);
 
-    // Dipendenze iniettate da Spring
-    private final TrafficDataProvider trafficDataProvider; // interfaccia Adapter per ottenere i dati di traffico (GoogleMapsClient)
-    private final AppConfig appConfig; // configurazione dell'app
-    private final TrafficDataRepository trafficDataRepository; // Repository per salvare i dati di traffico
+    // Spring-injected dependencies
+    private final TrafficDataProvider trafficDataProvider; // Adapter interface for fetching traffic data (GoogleMapsClient)
+    private final AppConfig appConfig; // App configuration
+    private final TrafficDataRepository trafficDataRepository; // Repository to persist traffic data
 
-    @Autowired // Inietta l'Executor personalizzato definito in AppConfig
-    @Qualifier("taskExecutor") // bean "taskExecutor" in AppConfig
-    private Executor executor; // Pool di thread per l'esecuzione asincrona dei CompletableFuture
+    @Autowired // Injects the custom Executor defined in AppConfig
+    @Qualifier("taskExecutor") // "taskExecutor" bean in AppConfig
+    private Executor executor; // Thread pool for asynchronous CompletableFuture execution
     
-    private final GoogleMapsTrafficAdapter googleMapsTrafficAdapter;// Adapter specifico per Google Maps Traffic (implementa TrafficDataProvider)
+    private final GoogleMapsTrafficAdapter googleMapsTrafficAdapter; // Specific adapter for Google Maps Traffic (implements TrafficDataProvider)
 
     private final LatLngService locationService;
     private final TrafficMessagePublisher trafficMessagePublisher;
 
-    // Costruttore per l'iniezione delle dipendenze
-    // Spring lo usa per creare l'istanza del servizio.
+    // Constructor for dependency injection
+    // Used by Spring to instantiate the service.
     public TrafficCollectionService(GoogleMapsTrafficAdapter googleMapsTrafficAdapter, TrafficDataProvider trafficDataProvider, AppConfig appConfig,
                                     TrafficDataRepository trafficDataRepository, LatLngService latLngservice, TrafficMessagePublisher trafficMessagePublisher) {
         this.trafficDataProvider = trafficDataProvider;
@@ -56,92 +56,88 @@ public class TrafficCollectionService {
     }
 
     /**
-     * Recupera tutte le località salvate nel database.
-     * @return Una lista di oggetti Location.
+     * Retrieves all locations saved in the database.
+     * @return A list of TrafficData objects.
      */
     public List<TrafficData> getAllTrafficData() {
-        // Il metodo findAll() è fornito da JpaRepository
+        // findAll() is provided by JpaRepository
         return trafficDataRepository.findAll();
     }
 
-    // Metodo schedulato per la raccolta dati
-    // fixedDelayString: l'intervallo tra la fine di un'esecuzione e l'inizio della successiva
+    // Scheduled method for data collection
+    // fixedDelayString: delay between the end of one execution and the start of the next
     @Scheduled(fixedDelayString = "${traffic.collection.fixedDelayMs}")
-    @Transactional // <--- METODO TRANSAZIONALE
-    //Assicura che tutte le operazioni di database in questo metodo avvengano in una singola transazione
+    @Transactional // <--- TRANSACTIONAL METHOD
+    // Ensures all database operations within this method occur in a single transaction
     public void collectTrafficDataScheduled() {
-        logger.info("           --- Avvio ciclo di raccolta dati sul traffico  (schedulato)---");
-        String originStr = appConfig.getTrafficRouteOrigin(); // Ottiene la stringa di origine (es. "lat,lng") dalla configurazione
-        String destinationStr = appConfig.getTrafficRouteDestination(); // Ottiene la stringa di destinazione dalla configurazione
+        logger.info("           --- Starting traffic data collection cycle (scheduled) ---");
+        String originStr = appConfig.getTrafficRouteOrigin(); // Retrieves origin string (e.g., "lat,lng") from config
+        String destinationStr = appConfig.getTrafficRouteDestination(); // Retrieves destination string from config
 
-        // 1. Parsa le stringhe in LatLng DTO temporanei
-        // oggetti "transient" (nuovi, non ancora gestiti da JPA)
-        LatLng tempOriginLatLng = locationService.parseLatLngFromString(originStr); // Implementa o recupera dal DB
+        // 1. Parse strings into temporary LatLng DTOs
+        // Transient objects (new, not yet managed by JPA)
+        LatLng tempOriginLatLng = locationService.parseLatLngFromString(originStr);
         LatLng tempDestinationLatLng = locationService.parseLatLngFromString(destinationStr);
 
         if (tempOriginLatLng == null || tempDestinationLatLng == null) {
-            logger.error("       ****ERRORE : Impossibile parsare le coordinate di origine o destinazione. Controlla application.properties.");
-            return; // Interrompe l'esecuzione se il parsing fallisce
+            logger.error("       ****ERROR: Unable to parse origin or destination coordinates. Check application.properties.");
+            return; // Halts execution if parsing fails
         }
 
-        // 2. Ottenere le entità LatLng dal database o crearle se non esistono
-        // controllo che le località siano persistenti nel DB prima di usarle
-        // le LatLng usate siano quindi "managed" (gestite da JPA)
-        // e persistenti nel DB prima di essere associate a TrafficData
+        // 2. Fetch LatLng entities from the database or create them if they do not exist
+        // Verifies locations are persistent in the DB before usage
+        // Ensuring LatLng objects are "managed" by JPA
+        // and persistent in the DB before associating with TrafficData
         LatLng originLatLng = locationService.findOrCreateLatLng(tempOriginLatLng.getLatitude(), tempOriginLatLng.getLongitude());
         LatLng destinationLatLng = locationService.findOrCreateLatLng(tempDestinationLatLng.getLatitude(), tempDestinationLatLng.getLongitude());
 
         try {
-            // Richiede i dettagli del traffico all'API di Google in modo asincrono
+            // Requests traffic details from Google API asynchronously
             CompletableFuture<RouteDetails> futureRouteDetails = trafficDataProvider.getTrafficDetails(originStr, destinationStr);
 
-            // Attende il risultato del CompletableFuture con un timeout
-            // Se il timeout scade, viene lanciata una TimeoutException
+            // Awaits CompletableFuture result with a timeout
+            // Throws TimeoutException if the timeout expires
             RouteDetails routeDetails = futureRouteDetails.get(appConfig.getApiTimeoutSeconds() + 5, TimeUnit.SECONDS);
 
             if (routeDetails != null) {
-                // Crea un nuovo oggetto TrafficData.
-                // si usano gli oggetti 'originLatLng' e 'destinationLatLng'
-                // che sono stati recuperati o creati (quindi sono "managed").
+                // Creates a new TrafficData object.
+                // Uses 'originLatLng' and 'destinationLatLng'
+                // which have been retrieved or created (hence "managed").
 
-                //this.timestamp originLatLng destinationLatLng mode routeDetails
+                // this.timestamp originLatLng destinationLatLng mode routeDetails
                 TrafficData trafficData = new TrafficData(
                         LocalDateTime.now(),
-                        originLatLng,        // Usa le entità LatLng gestite da JPA
-                        destinationLatLng,   // Usa le entità LatLng gestite da JPA
+                        originLatLng,        // Uses JPA-managed LatLng entities
+                        destinationLatLng,   // Uses JPA-managed LatLng entities
                         "driving",
                         routeDetails
                 );
                 
-                // Salva l'oggetto TrafficData nel DB
-
-                // Invia l'oggetto TrafficData al message broker (RabbitMQ/SQS)
-                // Invece di salvare direttamente nel DB (sarà salvato dal Listener in background)
+                // Dispatches the TrafficData object to the message broker (RabbitMQ/SQS)
+                // Instead of direct DB save (will be saved by background Listener)
                 trafficMessagePublisher.publishTrafficData(trafficData);
-                logger.info("       ****Ciclo di raccolta e memorizzazione completato con successo per rotta {}-{}", originStr, destinationStr);
+                logger.info("       ****Collection and storage cycle completed successfully for route {}-{}", originStr, destinationStr);
             } else {
-                logger.warn("       ****Dati traffico nulli (probabile fallback di Circuit Breaker o errore API). Saltando la memorizzazione.");
+                logger.warn("       ****Traffic data is null (probable Circuit Breaker fallback or API error). Skipping storage.");
             }
         } catch (TimeoutException e) {
-            logger.error("       ****L'operazione di raccolta traffico ha superato il timeout di attesa del CompletableFuture: {}", e.getMessage());
+            logger.error("       ****Traffic collection operation exceeded the CompletableFuture timeout: {}", e.getMessage());
         } catch (Exception e) {
-            // Cattura qualsiasi altra eccezione durante il processo
-            logger.error("      *****Errore critico durante il ciclo di raccolta traffico: {}*****", e.getMessage(), e);
+            // Catches any other exceptions during the process
+            logger.error("      *****Critical error during traffic collection cycle: {}*****", e.getMessage(), e);
         }
     }
 
-    
-
     /**
-     * raccoglie e salva i dati del traffico per una specifica rotta
-     * (chiamato dai controller web)
-     * @param origin La località di origine
-     * @param destination La località di destinazione
-     * @return CompletableFuture<Void> che si completa quando l'operazione è finita
+     * Collects and saves traffic data for a specific route
+     * (invoked by web controllers)
+     * @param origin The origin location
+     * @param destination The destination location
+     * @return CompletableFuture<Void> resolving upon operation completion
      */
-    @Transactional // operazioni DB atomiche
+    @Transactional // Atomic DB operations
     public CompletableFuture<Void> collectTrafficDataForRoute(LatLng origin, LatLng destination) {
-        logger.info("       ****Raccolta traffico per rotta: {} ({}) -> {} ({})",
+        logger.info("       ****Collecting traffic for route: {} ({}) -> {} ({})",
                 origin.getName(), locationService.formatLatLng(origin), destination.getName(), locationService.formatLatLng(destination));
 
         String originCoords = locationService.formatLatLng(origin);
@@ -152,31 +148,29 @@ public class TrafficCollectionService {
                 if (routeDetails != null) {
                     TrafficData trafficData = new TrafficData(
                             LocalDateTime.now(), 
-                            // Usa le entità LatLng gestite
+                            // Uses managed LatLng entities
                             origin,
                             destination,
                             "driving",
                             routeDetails
                     );
-                    // Invia l'oggetto TrafficData al message broker (RabbitMQ/SQS)
+                    // Dispatches the TrafficData object to the message broker (RabbitMQ/SQS)
                     trafficMessagePublisher.publishTrafficData(trafficData);
-                    logger.info("       ****Dato traffico salvato per rotta: {} -> {}", origin.getName(), destination.getName());
+                    logger.info("       ****Traffic data saved for route: {} -> {}", origin.getName(), destination.getName());
                 } else {
-                    logger.warn("       ****Nessun dettaglio traffico ottenuto per rotta: {} -> {}", origin.getName(), destination.getName());
+                    logger.warn("       ****No traffic details obtained for route: {} -> {}", origin.getName(), destination.getName());
                 }
                 return (Void) null;
             }, executor)
             .exceptionally(ex -> {
-                logger.error("       ****Errore nella raccolta del traffico per rotta {}-{}: {}",
+                logger.error("       ****Error collecting traffic for route {}-{}: {}",
                         origin.getName(), destination.getName(), ex.getMessage());
-                throw new RuntimeException("Errore nella raccolta del traffico: " + ex.getMessage(), ex);
+                throw new RuntimeException("Error collecting traffic data: " + ex.getMessage(), ex);
             });
     }
-
     
     public List<TrafficData> getTrafficDataByOriginAndDestination(Long originId, Long destinationId) {
-        // Implementa la logica per recuperare i dati dal tuo database
-        // Esempio con Spring Data JPA (dovrai definire il metodo nel tuo TrafficDataRepository)
+        // Example with Spring Data JPA 
         return trafficDataRepository.findByOriginIdAndDestinationIdOrderByTimestampAsc(originId, destinationId);
     }
 

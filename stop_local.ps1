@@ -1,15 +1,15 @@
 Write-Host "=========================================="
-Write-Host "STOP DEPLOY LOCALE (FASE 1)"
+Write-Host "STOP LOCAL DEPLOYMENT (PHASE 1)"
 Write-Host "=========================================="
 
-Write-Host "`n[1] Smantellamento delle risorse su Kubernetes locale..."
+Write-Host "`n[1] Tearing down resources on local Kubernetes..."
 kubectl delete -f infrastructure/k8s/
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "[Errore] Impossibile eliminare le risorse. Kubernetes e' acceso?" -ForegroundColor Red
+    Write-Host "[Error] Unable to delete resources. Is Kubernetes running?" -ForegroundColor Red
     exit
 }
 
-Write-Host "`n*** SITO LOCALE FERMATO CON SUCCESSO! ***"
-Write-Host "Tutti i pod, i servizi e il database sono stati rimossi."
+Write-Host "`n*** LOCAL SITE STOPPED SUCCESSFULLY! ***"
+Write-Host "All pods, services, and the database have been removed."
 Write-Host "=========================================="
