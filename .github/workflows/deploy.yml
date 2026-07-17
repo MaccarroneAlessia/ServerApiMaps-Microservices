@@ -100,18 +100,16 @@ jobs:
         DB_PASS=$(aws ssm get-parameter --name "/maps-app/prod/DB_PASSWORD" --with-decryption --query "Parameter.Value" --output text || echo "default_pass")
         API_KEY=$(aws ssm get-parameter --name "/maps-app/prod/GOOGLE_MAPS_API_KEY" --with-decryption --query "Parameter.Value" --output text || echo "default_key")
         
-        # Passa i comandi via SSH (non usare 'EOF' coi singoli apici per permettere la sostituzione variabili locale)
-        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} << EOF
-          # Crea i segreti in K3s
+        # Passa i comandi via SSH (senza EOF per evitare problemi YAML)
+        ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.K3S_MASTER_IP }} "
           sudo k3s kubectl create configmap maps-app-cloud-config \
-            --from-literal=SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
+            --from-literal=SPRING_DATASOURCE_URL=\"${{ secrets.SPRING_DATASOURCE_URL }}\" \
             --dry-run=client -o yaml | sudo k3s kubectl apply -f -
             
           sudo k3s kubectl create secret generic maps-app-cloud-secrets \
-            --from-literal=DB_PASSWORD="$DB_PASS" \
-            --from-literal=GOOGLE_API_KEY="$API_KEY" \
+            --from-literal=DB_PASSWORD=\"$DB_PASS\" \
+            --from-literal=GOOGLE_API_KEY=\"$API_KEY\" \
             --dry-run=client -o yaml | sudo k3s kubectl apply -f -
 
-          # Applica i manifesti del Deployment e del Service
           sudo k3s kubectl apply -f ~/k8s-manifests/
-EOF
+        "
