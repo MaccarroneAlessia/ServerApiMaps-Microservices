@@ -23,6 +23,10 @@ spec:
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "cloud" # Per attivare il profilo cloud (es. SQS)
+        - name: SPRING_CLOUD_AWS_SQS_ENABLED
+          value: "false"
+        - name: MANAGEMENT_HEALTH_RABBIT_ENABLED
+          value: "false"
         - name: SPRING_DATASOURCE_URL
           valueFrom:
             configMapKeyRef:
